@@ -1,0 +1,212 @@
+
+<style>
+.phase-card { background: var(--color-background-primary); border: 0.5px solid var(--color-border-tertiary); border-radius: 12px; padding: 18px 20px; margin-bottom: 14px; }
+.phase-header { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
+.phase-badge { font-size: 11px; font-weight: 500; padding: 4px 10px; border-radius: 20px; white-space: nowrap; }
+.phase-title { font-size: 15px; font-weight: 500; color: var(--color-text-primary); margin: 0; }
+.phase-sub { font-size: 12px; color: var(--color-text-secondary); margin: 2px 0 0; }
+.task-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(0, 1fr)); gap: 8px; }
+.task { background: var(--color-background-secondary); border-radius: 8px; padding: 10px 12px; }
+.task-label { font-size: 12px; font-weight: 500; color: var(--color-text-primary); margin: 0 0 3px; }
+.task-desc { font-size: 11px; color: var(--color-text-secondary); margin: 0; line-height: 1.5; }
+.tag { font-size: 10px; padding: 2px 7px; border-radius: 10px; margin-top: 6px; display: inline-block; font-weight: 500; }
+.tag-oss { background: var(--color-background-success); color: var(--color-text-success); }
+.tag-cloud { background: var(--color-background-info); color: var(--color-text-info); }
+.tag-prem { background: var(--color-background-warning); color: var(--color-text-warning); }
+.tag-risk { background: var(--color-background-danger); color: var(--color-text-danger); }
+.milestone-bar { height: 4px; border-radius: 2px; margin: 14px 0 10px; }
+.deliverables { display: flex; flex-wrap: wrap; gap: 6px; }
+.deliverable { font-size: 11px; color: var(--color-text-secondary); background: var(--color-background-tertiary); border-radius: 6px; padding: 3px 9px; }
+</style>
+
+<div style="padding: 0.5rem 0 1rem;">
+
+<!-- Phase 1 -->
+<div class="phase-card">
+  <div class="phase-header">
+    <div class="phase-badge" style="background:#E1F5EE;color:#0F6E56;">Phase 1</div>
+    <div>
+      <p class="phase-title">Foundation — Core RAG + Manual Browsing</p>
+      <p class="phase-sub">Weeks 1–8 · Team: 1 backend dev, 1 mobile dev</p>
+    </div>
+  </div>
+  <div class="milestone-bar" style="background:linear-gradient(90deg,#1D9E75 100%,#e0e0e0 0%)"></div>
+  <div class="task-grid">
+    <div class="task">
+      <p class="task-label">Ingestion pipeline</p>
+      <p class="task-desc">PDF parser (PyMuPDF), chunker, embedding model, cloud vector DB (Pinecone)</p>
+      <span class="tag tag-oss">open source</span>
+    </div>
+    <div class="task">
+      <p class="task-label">Basic chat UI</p>
+      <p class="task-desc">React Native app skeleton, Q&A screen, conversation history</p>
+      <span class="tag tag-oss">open source</span>
+    </div>
+    <div class="task">
+      <p class="task-label">FastAPI backend</p>
+      <p class="task-desc">Auth (JWT), RAG endpoint, user accounts, Stripe billing stubs</p>
+      <span class="tag tag-cloud">cloud</span>
+    </div>
+    <div class="task">
+      <p class="task-label">WikiVet scraper</p>
+      <p class="task-desc">Scrapy spider, license review, incremental re-indexing cron</p>
+      <span class="tag tag-risk">legal check</span>
+    </div>
+  </div>
+  <div style="margin-top:12px">
+    <p style="font-size:11px;font-weight:500;color:var(--color-text-secondary);margin:0 0 6px;">Deliverables</p>
+    <div class="deliverables">
+      <span class="deliverable">Working iOS/Android app</span>
+      <span class="deliverable">PDF Q&A online</span>
+      <span class="deliverable">Cloud vector search</span>
+      <span class="deliverable">User auth + billing stubs</span>
+    </div>
+  </div>
+</div>
+
+<!-- Phase 2 -->
+<div class="phase-card">
+  <div class="phase-header">
+    <div class="phase-badge" style="background:#E6F1FB;color:#185FA5;">Phase 2</div>
+    <div>
+      <p class="phase-title">Offline Mode — On-device LLM + Local Vector DB</p>
+      <p class="phase-sub">Weeks 9–16 · Team: +1 ML engineer</p>
+    </div>
+  </div>
+  <div class="milestone-bar" style="background:linear-gradient(90deg,#378ADD 100%,#e0e0e0 0%)"></div>
+  <div class="task-grid">
+    <div class="task">
+      <p class="task-label">On-device LLM</p>
+      <p class="task-desc">Integrate Gemma 3 1B or Phi-4-mini via llama.cpp / MLC LLM for iOS & Android</p>
+      <span class="tag tag-oss">open source</span>
+    </div>
+    <div class="task">
+      <p class="task-label">Local vector DB</p>
+      <p class="task-desc">LanceDB or sqlite-vec bundled in app, manual index bundled on install</p>
+      <span class="tag tag-oss">open source</span>
+    </div>
+    <div class="task">
+      <p class="task-label">Network router</p>
+      <p class="task-desc">Auto-detect connectivity; route to local LLM offline, cloud LLM online</p>
+      <span class="tag tag-oss">open source</span>
+    </div>
+    <div class="task">
+      <p class="task-label">Delta sync</p>
+      <p class="task-desc">Sync new index chunks when online; background download of model weights</p>
+      <span class="tag tag-cloud">cloud</span>
+    </div>
+  </div>
+  <div style="margin-top:12px">
+    <p style="font-size:11px;font-weight:500;color:var(--color-text-secondary);margin:0 0 6px;">Deliverables</p>
+    <div class="deliverables">
+      <span class="deliverable">Fully offline Q&A</span>
+      <span class="deliverable">Auto online/offline switch</span>
+      <span class="deliverable">Bundled vet manual index</span>
+      <span class="deliverable">Delta sync on reconnect</span>
+    </div>
+  </div>
+</div>
+
+<!-- Phase 3 -->
+<div class="phase-card">
+  <div class="phase-header">
+    <div class="phase-badge" style="background:#FAEEDA;color:#854F0B;">Phase 3</div>
+    <div>
+      <p class="phase-title">OCR + Image Recognition (Premium)</p>
+      <p class="phase-sub">Weeks 17–22 · Team: +1 mobile/CV engineer</p>
+    </div>
+  </div>
+  <div class="milestone-bar" style="background:linear-gradient(90deg,#BA7517 100%,#e0e0e0 0%)"></div>
+  <div class="task-grid">
+    <div class="task">
+      <p class="task-label">On-device OCR</p>
+      <p class="task-desc">Google ML Kit Text Recognition — offline, instant, no API cost</p>
+      <span class="tag tag-oss">offline</span>
+    </div>
+    <div class="task">
+      <p class="task-label">Cloud OCR fallback</p>
+      <p class="task-desc">Google Document AI for complex/handwritten notes when online</p>
+      <span class="tag tag-cloud">cloud</span>
+    </div>
+    <div class="task">
+      <p class="task-label">Image recognition</p>
+      <p class="task-desc">Fine-tune EfficientNet on vet image datasets (wounds, parasites, lesions)</p>
+      <span class="tag tag-prem">premium</span>
+    </div>
+    <div class="task">
+      <p class="task-label">Premium gate UI</p>
+      <p class="task-desc">Paywall screens, Stripe in-app purchase, feature unlock flow</p>
+      <span class="tag tag-prem">premium</span>
+    </div>
+  </div>
+  <div style="margin-top:12px">
+    <p style="font-size:11px;font-weight:500;color:var(--color-text-secondary);margin:0 0 6px;">Deliverables</p>
+    <div class="deliverables">
+      <span class="deliverable">Scan printed notes</span>
+      <span class="deliverable">Lesion/wound image analysis</span>
+      <span class="deliverable">Paywall + in-app purchase</span>
+      <span class="deliverable">Cloud OCR fallback</span>
+    </div>
+  </div>
+</div>
+
+<!-- Phase 4 -->
+<div class="phase-card">
+  <div class="phase-header">
+    <div class="phase-badge" style="background:#FCEBEB;color:#A32D2D;">Phase 4</div>
+    <div>
+      <p class="phase-title">X-ray Vision — Advanced Premium AI</p>
+      <p class="phase-sub">Weeks 23–30 · Team: +radiology SME advisor</p>
+    </div>
+  </div>
+  <div class="milestone-bar" style="background:linear-gradient(90deg,#E24B4A 100%,#e0e0e0 0%)"></div>
+  <div class="task-grid">
+    <div class="task">
+      <p class="task-label">Multimodal LLM</p>
+      <p class="task-desc">GPT-4o Vision / Gemini 2.0 Flash for X-ray image + text prompt analysis</p>
+      <span class="tag tag-prem">premium</span>
+    </div>
+    <div class="task">
+      <p class="task-label">DICOM support</p>
+      <p class="task-desc">Accept standard X-ray format, convert to JPEG for vision model input</p>
+      <span class="tag tag-oss">open source</span>
+    </div>
+    <div class="task">
+      <p class="task-label">Regulatory review</p>
+      <p class="task-desc">Legal opinion on vet AI diagnostics per target markets (Kenya, UK, US)</p>
+      <span class="tag tag-risk">legal</span>
+    </div>
+    <div class="task">
+      <p class="task-label">Disclaimer layer</p>
+      <p class="task-desc">Mandatory "assistive only, not diagnostic" overlay on all AI image outputs</p>
+      <span class="tag tag-risk">compliance</span>
+    </div>
+  </div>
+  <div style="margin-top:12px">
+    <p style="font-size:11px;font-weight:500;color:var(--color-text-secondary);margin:0 0 6px;">Deliverables</p>
+    <div class="deliverables">
+      <span class="deliverable">X-ray upload + AI analysis</span>
+      <span class="deliverable">DICOM to JPEG converter</span>
+      <span class="deliverable">Regulatory sign-off</span>
+      <span class="deliverable">Compliance disclaimers</span>
+    </div>
+  </div>
+</div>
+
+<!-- Timeline bar -->
+<div style="background:var(--color-background-secondary);border-radius:10px;padding:14px 18px;margin-top:4px">
+  <p style="font-size:12px;font-weight:500;color:var(--color-text-secondary);margin:0 0 10px;">Estimated timeline (weeks)</p>
+  <div style="position:relative;height:28px;">
+    <div style="position:absolute;left:0%;width:26.6%;height:100%;background:#1D9E75;border-radius:6px 0 0 6px;opacity:.85;display:flex;align-items:center;padding:0 8px">
+      <span style="font-size:11px;font-weight:500;color:#fff;">Ph 1 · 1–8</span></div>
+    <div style="position:absolute;left:26.6%;width:26.6%;height:100%;background:#378ADD;opacity:.85;display:flex;align-items:center;padding:0 8px">
+      <span style="font-size:11px;font-weight:500;color:#fff;">Ph 2 · 9–16</span></div>
+    <div style="position:absolute;left:53.3%;width:20%;height:100%;background:#BA7517;opacity:.85;display:flex;align-items:center;padding:0 8px">
+      <span style="font-size:11px;font-weight:500;color:#fff;">Ph 3 · 17–22</span></div>
+    <div style="position:absolute;left:73.3%;width:26.6%;height:100%;background:#E24B4A;border-radius:0 6px 6px 0;opacity:.85;display:flex;align-items:center;padding:0 8px">
+      <span style="font-size:11px;font-weight:500;color:#fff;">Ph 4 · 23–30</span></div>
+  </div>
+  <p style="font-size:11px;color:var(--color-text-tertiary);margin:10px 0 0;">~7–8 months to full feature set · phases can overlap by 2–3 weeks</p>
+</div>
+
+</div>

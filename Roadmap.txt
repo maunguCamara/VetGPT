@@ -1,0 +1,17 @@
+## Next Steps (Phase 1 continues)
+
+- [ ] **FastAPI backend** — RAG query endpoint (`/api/query`)
+- [ ] **WikiVet scraper** — web ingestion pipeline
+- [ ] **React Native app** — mobile chat UI
+
+## Phase 2 Preview
+
+When you're ready, the `VetVectorStore.query()` method is already wired up.
+The FastAPI backend will call it like this:
+
+```python
+from ingestion import VetVectorStore
+
+store = VetVectorStore()
+chunks = store.query("signs of canine distemper", n_results=5)
+# Feed chunks into Claude/GPT-4o as context → return answer to user

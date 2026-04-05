@@ -1,0 +1,28 @@
+# VetGPT Backend — additional dependencies (append to requirements.txt)
+
+# API Framework
+fastapi==0.111.0
+uvicorn[standard]==0.30.1
+
+# Auth
+python-jose[cryptography]==3.3.0   # JWT tokens
+passlib[bcrypt]==1.7.4              # password hashing
+
+# Database (user accounts, query logs)
+sqlalchemy==2.0.31
+alembic==1.13.1                    # DB migrations
+aiosqlite==0.20.0                  # async SQLite (swap to Postgres in prod)
+
+# LLM clients
+anthropic==0.29.0                  # Claude
+openai==1.35.0                     # GPT-4o / embeddings fallback
+
+# Validation & config
+pydantic==2.7.4
+pydantic-settings==2.3.4
+
+# Rate limiting
+slowapi==0.1.9
+
+# HTTP client (for health checks)
+httpx==0.27.0

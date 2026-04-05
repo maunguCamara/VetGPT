@@ -17,7 +17,7 @@ import {
 import { useState, useRef, useCallback } from 'react';
 import Markdown from 'react-native-markdown-display';
 import { useChatStore, useAppStore, useAuthStore, Message } from '../../store';
-import { streamQuery } from '../../lib/api';
+import { offlineRouter } from '../../lib/offlineRouter';
 import { Colors, Spacing, Radius, Typography, Shadow } from '../../constants/theme';
 
 // ─── Suggested starter questions ─────────────────────────────────────────────
@@ -170,27 +170,28 @@ export default function ChatScreen() {
       return;
     }
 
-    await streamQuery(
+    await offlineRouter.streamQuery(
       query,
       (token) => {
         updateLastMessage(token);
         scrollToBottom();
       },
       () => {
-        // Stream done — mark as complete
-        // Citations and disclaimer come via the non-streaming endpoint
-        // In Phase 2 we'll merge both; for now streaming handles text only
         setQuerying(false);
         scrollToBottom();
       },
       (err) => {
         updateLastMessage(
-          err.message === 'offline'
-            ? 'No internet connection. Download the offline model in Settings to use VetGPT offline.'
+          err.message.includes('offline') || err.message.includes('internet')
+            ? err.message
             : `Error: ${err.message}. Please try again.`,
           true
         );
         setQuerying(false);
+      },
+      (decision) => {
+        // Optionally show which mode is being used
+        console.log('[Chat] Query mode:', decision.mode);
       }
     );
   }

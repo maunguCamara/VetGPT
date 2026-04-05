@@ -10,7 +10,6 @@ import {
 import { useState } from 'react';
 import { router } from 'expo-router';
 import { logout } from '../../lib/api';
-import { useAuthStore, useAppStore } from '../../store';
 import { Colors, Spacing, Radius, Typography, Shadow } from '../../constants/theme';
 
 function TierBadge({ tier }: { tier: string }) {
@@ -156,8 +155,10 @@ export default function ProfileScreen() {
             Download once, use VetGPT without internet.
             Requires Wi-Fi and 2 GB free storage.
           </Text>
-          <TouchableOpacity style={styles.downloadBtn}>
-            <Text style={styles.downloadBtnText}>Download (coming soon)</Text>
+          <TouchableOpacity style={styles.downloadBtn} onPress={() => router.push('/download-model')}>
+            <Text style={styles.downloadBtnText}>
+              {hasLocalModel ? '✅ Model ready — tap to manage' : 'Download offline model (1.93 GB)'}
+            </Text>
           </TouchableOpacity>
         </View>
 

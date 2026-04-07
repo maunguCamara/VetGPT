@@ -11,7 +11,7 @@ import * as Network from 'expo-network';
 // ─── Config ───────────────────────────────────────────────────────────────────
 
 const CLOUD_BASE_URL = 'https://api.vetgpt.app';
-const LOCAL_BASE_URL = 'http://localhost:8000';
+const LOCAL_BASE_URL = 'http://192.168.100.24:8000';
 export const BASE_URL = __DEV__ ? LOCAL_BASE_URL : CLOUD_BASE_URL;
 
 const TOKEN_KEY = 'vetgpt_auth_token';

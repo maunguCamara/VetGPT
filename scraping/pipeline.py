@@ -18,6 +18,7 @@ from ingestion.embedder import VetVectorStore
 from .wikivet_scraper import WikiVetScraper, ScrapedArticle
 from .pubmed_scraper import PubMedScraper, PubMedArticle
 from .fao_scraper import FAOScraper, FAODocument
+from .eclinpath_scraper import EClinPathScraper, EClinPathArticle
 
 console = Console()
 
@@ -89,6 +90,7 @@ class ScrapingPipeline:
         self.wikivet = WikiVetScraper()
         self.pubmed = PubMedScraper(ncbi_api_key=ncbi_api_key)
         self.fao = FAOScraper()
+        self.eclinpath = EClinPathScraper()
 
     # ------------------------------------------------------------------
     # Public runners
@@ -104,9 +106,10 @@ class ScrapingPipeline:
 
         stats = {}
 
-        stats["wikivet"] = self._run_wikivet()
-        stats["pubmed"] = self._run_pubmed()
-        stats["fao"] = self._run_fao()
+        stats["wikivet"]   = self._run_wikivet()
+        stats["pubmed"]    = self._run_pubmed()
+        stats["fao"]       = self._run_fao()
+        stats["eclinpath"] = self._run_eclinpath()
 
         self._print_summary(stats)
         return stats
@@ -119,6 +122,9 @@ class ScrapingPipeline:
 
     def run_fao_only(self) -> int:
         return self._run_fao()
+
+    def run_eclinpath_only(self) -> int:
+        return self._run_eclinpath()
 
     def run_from_cache(self) -> dict:
         """Load all scrapers from cache and re-index (no network calls)."""
@@ -133,6 +139,9 @@ class ScrapingPipeline:
 
         fao_docs = self.fao.load_cached()
         stats["fao"] = self._index_articles(fao_docs, "FAO")
+
+        eclinpath_articles = self.eclinpath.load_cached()
+        stats["eclinpath"] = self._index_articles(eclinpath_articles, "eClinPath")
 
         self._print_summary(stats)
         return stats
@@ -161,6 +170,13 @@ class ScrapingPipeline:
         else:
             docs = self.fao.scrape_all()
         return self._index_articles(docs, "FAO")
+
+    def _run_eclinpath(self) -> int:
+        if self.use_cache:
+            articles = self.eclinpath.load_cached()
+        else:
+            articles = self.eclinpath.scrape_all()
+        return self._index_articles(articles, "eClinPath")
 
     def _index_articles(self, articles: list, source_name: str) -> int:
         """Convert articles to chunks and upsert into ChromaDB."""

@@ -8,8 +8,8 @@ import {
   StyleSheet, ActivityIndicator, SafeAreaView,
 } from 'react-native';
 import { useState } from 'react';
-import { queryVet, QueryResponse } from '../../lib/api';
-import { Colors, Spacing, Radius, Typography, Shadow } from '../../constants/theme';
+import { queryVet, QueryResponse } from '../lib/api';
+import { Colors, Spacing, Radius, Typography, Shadow } from '../constants/theme';
 
 const SPECIES_FILTERS = ['All', 'Canine', 'Feline', 'Bovine', 'Equine', 'Ovine', 'Porcine', 'Exotic'];
 const SOURCE_FILTERS  = ['All', 'WikiVet', 'PubMed', 'FAO', 'Plumbs'];

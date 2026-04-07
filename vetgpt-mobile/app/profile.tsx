@@ -9,8 +9,8 @@ import {
 } from 'react-native';
 import { useState } from 'react';
 import { router } from 'expo-router';
-import { logout } from '../../lib/api';
-import { Colors, Spacing, Radius, Typography, Shadow } from '../../constants/theme';
+import { logout } from '../lib/api';
+import { Colors, Spacing, Radius, Typography, Shadow } from '../constants/theme';
 
 function TierBadge({ tier }: { tier: string }) {
   const isPremium = tier === 'premium' || tier === 'clinic';
@@ -47,6 +47,7 @@ export default function ProfileScreen() {
   const { isOnline, filterSpecies, setFilterSpecies } = useAppStore();
   const [streamingEnabled, setStreamingEnabled] = useState(true);
   const [citationsEnabled, setCitationsEnabled] = useState(true);
+  const [hasLocalModel, setHasLocalModel] = useState(false);
 
   const isPremium = user?.tier === 'premium' || user?.tier === 'clinic';
 
@@ -157,7 +158,7 @@ export default function ProfileScreen() {
           </Text>
           <TouchableOpacity style={styles.downloadBtn} onPress={() => router.push('/download-model')}>
             <Text style={styles.downloadBtnText}>
-              {hasLocalModel ? '✅ Model ready — tap to manage' : 'Download offline model (1.93 GB)'}
+              {hasLocalModel ? 'Model ready — tap to manage' : 'Download offline model (1.93 GB)'}
             </Text>
           </TouchableOpacity>
         </View>
@@ -167,7 +168,7 @@ export default function ProfileScreen() {
           <Text style={styles.logoutText}>Sign out</Text>
         </TouchableOpacity>
 
-        <Text style={styles.version}>VetGPT v1.0.0 · Built with ❤️ for vets</Text>
+        <Text style={styles.version}>VetGPT v1.0.0</Text>
 
       </ScrollView>
     </SafeAreaView>

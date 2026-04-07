@@ -1,0 +1,19 @@
+# npm audit report
+
+markdown-it  <12.3.2
+Severity: moderate
+Uncontrolled Resource Consumption in markdown-it - https://github.com/advisories/GHSA-6vfc-qv3f-vr6c
+No fix available
+node_modules/markdown-it
+  react-native-markdown-display  *
+  Depends on vulnerable versions of markdown-it
+  node_modules/react-native-markdown-display
+
+2 moderate severity vulnerabilities
+
+Some issues need review, and may require choosing
+a different dependency.
+
+
+Issues 
+Failed to send telemetry event ClientStartEvent: capture() takes 1 positional argument but 3 were given

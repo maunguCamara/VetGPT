@@ -16,10 +16,10 @@ import {
 } from 'react-native';
 import { useState, useRef, useCallback } from 'react';
 import Markdown from 'react-native-markdown-display';
-import { useChatStore, useAppStore, useAuthStore, Message } from '../../store';
-import { offlineRouter } from '../../lib/offlineRouter';
-import { Colors, Spacing, Radius, Typography, Shadow } from '../../constants/theme';
-
+import { useChatStore, useAppStore, useAuthStore } from '../store';
+import type { Message } from '../store';
+import { offlineRouter } from '../lib/offlineRouter';
+import { Colors, Spacing, Radius, Typography, Shadow } from '../constants/theme';
 // ─── Suggested starter questions ─────────────────────────────────────────────
 
 const SUGGESTED = [

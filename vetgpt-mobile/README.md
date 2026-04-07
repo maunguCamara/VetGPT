@@ -1,33 +1,57 @@
-# VetGPT Mobile App
+# VetGPT Mobile
 
 React Native (Expo) app for iOS and Android.
+Connects to the VetGPT FastAPI backend with full offline support via on-device LLM.
+
+---
 
 ## Project Structure
 
 ```
 vetgpt-mobile/
-├── app/
-│   ├── _layout.tsx          Root layout — auth check + network watcher
-│   ├── (auth)/
-│   │   ├── login.tsx        Login screen
-│   │   └── register.tsx     Register screen
-│   └── (tabs)/
-│       ├── _layout.tsx      Tab navigator (Chat, Search, Manuals, Profile)
-│       ├── chat.tsx         ← Main RAG chat interface
-│       ├── search.tsx       Direct vector search with filters
-│       ├── manuals.tsx      Browse indexed manual library
-│       └── profile.tsx      User settings, tier, offline model
-├── constants/
-│   └── theme.ts             Colors, typography, spacing
-├── lib/
-│   └── api.ts               Axios client + streaming + auth
+│
+├── app/                              # Expo Router screens
+│   ├── _layout.tsx                   # Root layout — auth restore, network watcher, offline router init
+│   ├── download-model.tsx            # Phase 2 — Model download UI (progress, pause, resume)
+│   │
+│   ├── (auth)/                       # Auth screens (no tab bar)
+│   │   ├── _layout.tsx
+│   │   ├── login.tsx                 # Email + password login
+│   │   └── register.tsx              # Account creation
+│   │
+│   └── (tabs)/                       # Main app (bottom tab navigator)
+│       ├── _layout.tsx               # Tab bar: Chat, Search, Manuals, Profile
+│       ├── chat.tsx                  # Core RAG chat with streaming + citations
+│       ├── search.tsx                # Direct vector search with species/source filters
+│       ├── manuals.tsx               # Browse indexed manual library by category
+│       └── profile.tsx               # User info, tier, offline model, settings, logout
+│
+├── lib/                              # Utilities and API clients
+│   ├── api.ts                        # Native fetch client — auth, query, streaming, history
+│   ├── modelManager.ts               # Phase 2 — Download/manage Qwen2.5-3B on device
+│   ├── localInference.ts             # Phase 2 — llama.cpp + MLC LLM engine clients
+│   └── offlineRouter.ts              # Phase 2 — Route: cloud vs local vs unavailable
+│
 ├── store/
-│   └── index.ts             Zustand — auth, chat, app state
-├── assets/                  Icons, splash screen (add your own)
-├── app.json                 Expo config
-├── package.json
-└── babel.config.js
+│   └── index.ts                      # Zustand — auth state, chat messages, app settings
+│
+├── constants/
+│   └── theme.ts                      # Colors, typography, spacing, shadows, border radius
+│
+├── assets/                           # App icons and splash (add your own 1024×1024 PNGs)
+│   ├── icon.png
+│   ├── splash.png
+│   ├── adaptive-icon.png
+│   └── favicon.png
+│
+├── app.json                          # Expo config (bundle ID, permissions, plugins)
+├── package.json                      # Dependencies — no axios, native fetch only
+├── babel.config.js                   # Babel config with Reanimated plugin
+├── tsconfig.json                     # TypeScript config
+└── .gitignore
 ```
+
+---
 
 ## Setup
 
@@ -35,82 +59,167 @@ vetgpt-mobile/
 # 1. Install dependencies
 npm install
 
-# 2. Add placeholder assets (required by Expo)
-mkdir -p assets
-# Create 1024x1024 icon.png, splash.png, adaptive-icon.png, favicon.png
-# Use any image editor or Expo's asset generator
+# 2. Add placeholder assets
+# Create four 1024×1024 PNG files in assets/:
+#   icon.png, splash.png, adaptive-icon.png, favicon.png
+# Any solid colour image works as a placeholder
 
-# 3. Start the dev server
+# 3. Update backend URL for your dev machine
+# Find your local IP (phone cannot use localhost):
+#   Mac/Linux:  ifconfig | grep "inet " | grep -v 127
+#   Windows:    ipconfig
+# Edit lib/api.ts:
+#   const LOCAL_BASE_URL = 'http://192.168.x.x:8000';
+
+# 4. Start dev server
 npx expo start
 
-# Scan QR code with Expo Go app on your phone
-# Or press 'a' for Android emulator, 'i' for iOS simulator
+# Scan QR with Expo Go on your phone
+# Press 'a' for Android emulator, 'i' for iOS simulator
 ```
 
-## Connecting to Backend
+---
 
-Edit `lib/api.ts`:
+## Screens
+
+### Chat (`/chat`)
+Streaming RAG chat. Sends query to `offlineRouter` which picks cloud or on-device LLM. Shows citations (source, page, score) and disclaimer below each answer. Offline banner auto-appears when internet is lost. Suggested starter questions shown on empty state.
+
+### Search (`/search`)
+Direct vector database search bypassing the chat UI. Species filter chips (Canine, Feline, Bovine, Equine, Ovine, Porcine, Exotic) and source filter chips (WikiVet, PubMed, FAO, Plumb's). Returns AI summary + ranked citation list with match percentages.
+
+### Manuals (`/manuals`)
+Library browser grouped into: Open Access (searchable now), Pending License (locked), Upload PDF. Tap an open-access source to search within it. PDF upload hooks into the backend ingestion pipeline (Phase 2).
+
+### Profile (`/profile`)
+User info with subscription tier badge. Premium upgrade banner for free users. Streaming and citations toggles. Default species filter. Offline model download button linking to `/download-model`. Sign out.
+
+### Download Model (`/download-model`)
+Full model lifecycle UI. Checks storage and WiFi before starting. Shows real-time download progress (bytes + %). Pause, resume, and cancel controls. Verification step after download. Engine info card (MLC for iOS, llama.cpp for Android). Delete model option.
+
+---
+
+## Offline Architecture (Phase 2)
+
+```
+Every query → offlineRouter.decide()
+    │
+    ├── Online ──────────────────────→ Cloud API → Claude / GPT-4o (best quality)
+    ├── Offline + iOS + model ready ─→ MLC LLM (Metal GPU, fastest on iPhone)
+    ├── Offline + Android + model ───→ llama.cpp (localhost:8080, stable)
+    └── Offline + no model ──────────→ Error + prompt to download model
+```
+
+**Model:** Qwen2.5-3B-Instruct Q4_K_M
+- 1.93 GB (GGUF / llama.cpp) · 2.1 GB (MLC / iOS)
+- Requires 4 GB device RAM · Download over WiFi only
+- `modelManager.ts` handles download, pause/resume, integrity check, deletion
+
+---
+
+## API Client (`lib/api.ts`)
+
+Native `fetch` only — no axios.
 
 ```typescript
-const LOCAL_BASE_URL = 'http://YOUR_LOCAL_IP:8000';  // not localhost — use your machine's IP
+// Auth
+await register("vet@clinic.com", "password", "Dr Smith");
+await login("vet@clinic.com", "password");
+await logout();
+const user = await getMe();
+
+// Query
+const result = await queryVet("canine parvovirus treatment", {
+  top_k: 5,
+  filter_species: "canine",
+});
+
+// Streaming
+await streamQuery("equine colic signs",
+  (token) => append(token),
+  () => done(),
+  (err) => handleError(err),
+);
+
+// History
+const history = await getHistory(20, 0);
 ```
 
-Find your IP:
-- Mac/Linux: `ifconfig | grep inet`
-- Windows:   `ipconfig`
+JWT is auto-attached from `expo-secure-store`. 401 auto-clears the token.
 
-## Building for Production
+---
+
+## State Management
+
+| Store | Key state | Key actions |
+|-------|-----------|-------------|
+| `useAuthStore` | `user`, `isAuthenticated` | `setUser`, `logout` |
+| `useChatStore` | `messages`, `isQuerying` | `addMessage`, `updateLastMessage`, `newSession` |
+| `useAppStore` | `isOnline`, `hasLocalModel`, filters | `setOnline`, `setHasLocalModel`, `setFilterSpecies` |
+
+---
+
+## Native Modules Note (Phase 2)
+
+`llama.rn` and `react-native-mlc-llm` are native modules — Expo Go will not work for Phase 2.
 
 ```bash
-# Install EAS CLI
-npm install -g eas-cli
+# Generate native projects
+npx expo prebuild
 
-# Login to Expo
-eas login
+# Run on device/emulator
+npx expo run:android
+npx expo run:ios          # Mac + Xcode required
 
-# Configure build
-eas build:configure
-
-# Build for both platforms
+# Production build via EAS
 eas build --platform all
 ```
 
-## Features by Screen
+Phase 1 features (chat, search, auth) work fully in Expo Go.
 
-### Chat (`/chat`)
-- Streaming RAG responses with typing effect
-- Citation panel below each answer (source + page)
-- Offline banner + graceful degradation
-- 5 suggested starter questions
-- Premium image upload button (camera icon)
-- New session / clear chat
+---
 
-### Search (`/search`)
-- Direct vector search (bypasses chat UI)
-- Species filter chips (Canine, Feline, Bovine, Equine...)
-- Source filter chips (WikiVet, PubMed, FAO, Plumb's)
-- Full citation list with match scores
+## .gitignore
 
-### Manuals (`/manuals`)
-- Grouped list: Available Now / Pending License / Upload
-- Tap open-access sources to search within them
-- Upload PDF (Phase 2)
+```
+node_modules/
+.expo/
+dist/
+ios/
+android/
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+web-build/
+.env
+assets/models/
+```
 
-### Profile (`/profile`)
-- User info + subscription tier badge
-- Premium upgrade banner (free users)
-- Streaming / citations toggles
-- Default species filter setting
-- Offline model download placeholder (Phase 2)
-- Sign out
+---
 
-## Phase 2 Additions (Offline)
-- [ ] Download Qwen2.5-3B weights on-device
-- [ ] llama.cpp local server integration
-- [ ] Auto-route: offline → local model, online → cloud
-- [ ] Local vector DB (sqlite-vec) with bundled index
+## Phase Status
 
-## Phase 3 Additions (Premium Vision)
-- [ ] Camera capture → OCR (Google ML Kit)
-- [ ] Image upload → vision analysis (GPT-4o Vision)
-- [ ] X-ray DICOM upload + AI analysis
+| Phase | Feature | Status |
+|-------|---------|--------|
+| 1 | Login + Register | ✅ Complete |
+| 1 | Chat (streaming + citations) | ✅ Complete |
+| 1 | Search (species + source filters) | ✅ Complete |
+| 1 | Manuals browser | ✅ Complete |
+| 1 | Profile + settings | ✅ Complete |
+| 1 | JWT auth via SecureStore | ✅ Complete |
+| 1 | Native fetch API client | ✅ Complete |
+| 1 | Zustand state management | ✅ Complete |
+| 1 | Network monitoring | ✅ Complete |
+| 2 | Model download screen | ✅ Complete |
+| 2 | ModelManager (download/pause/resume) | ✅ Complete |
+| 2 | llama.cpp client (Android + iOS) | ✅ Complete |
+| 2 | MLC LLM client (iOS Metal GPU) | ✅ Complete |
+| 2 | Offline router | ✅ Complete |
+| 2 | expo prebuild + dev build | ⏳ Run on your machine |
+| 2 | Bundled local vector DB (sqlite-vec) | 🔲 Planned |
+| 3 | Camera capture + OCR (ML Kit) | 🔲 Planned |
+| 3 | Image recognition — lesions/wounds | 🔲 Planned |
+| 3 | X-ray DICOM upload + AI (premium) | 🔲 Planned |
+| 3 | Stripe paywall + in-app purchase | 🔲 Planned |

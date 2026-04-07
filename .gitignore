@@ -1,7 +1,56 @@
-venv/
-data/
-.env
+# ── Python ───────────────────────────────────────────────────────────────────
 __pycache__/
-*.pyc
-*.db
-.chroma/
+*.py[cod]
+*$py.class
+*.so
+*.egg
+*.egg-info/
+dist/
+build/
+.eggs/
+
+# ── Virtual environments ──────────────────────────────────────────────────────
+venv/
+.venv/
+env/
+.env.local
+
+# ── Environment / secrets ─────────────────────────────────────────────────────
+.env
+*.key
+*.pem
+*.secret
+
+# ── Data — never commit PDFs, scraped data, or vector DB ─────────────────────
+data/pdfs/
+data/scraped/
+data/chroma_db/
+data/*.db
+data/*.sqlite
+
+# Keep the folder structure in git
+!data/.gitkeep
+!data/pdfs/.gitkeep
+!data/scraped/.gitkeep
+
+# ── IDE ───────────────────────────────────────────────────────────────────────
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# ── Testing ───────────────────────────────────────────────────────────────────
+.pytest_cache/
+.coverage
+htmlcov/
+.mypy_cache/
+
+# ── Logs ─────────────────────────────────────────────────────────────────────
+*.log
+logs/
+
+# ── Alembic ───────────────────────────────────────────────────────────────────
+# Keep migrations but not the generated DB
+alembic/versions/*.pyc

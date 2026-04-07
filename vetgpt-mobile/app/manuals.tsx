@@ -7,8 +7,8 @@ import {
   View, Text, SectionList, TouchableOpacity,
   StyleSheet, SafeAreaView,
 } from 'react-native';
-import { Colors, Spacing, Radius, Typography, Shadow } from '../../constants/theme';
-import { useAppStore } from '../../store';
+import { Colors, Spacing, Radius, Typography, Shadow } from '../constants/theme';
+import { useAppStore } from '../store';
 
 const MANUAL_SECTIONS = [
   {

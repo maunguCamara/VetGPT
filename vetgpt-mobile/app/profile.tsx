@@ -11,6 +11,7 @@ import { useState } from 'react';
 import { router } from 'expo-router';
 import { logout } from '../lib/api';
 import { Colors, Spacing, Radius, Typography, Shadow } from '../constants/theme';
+import { useAuthStore, useAppStore } from '../store';
 
 function TierBadge({ tier }: { tier: string }) {
   const isPremium = tier === 'premium' || tier === 'clinic';

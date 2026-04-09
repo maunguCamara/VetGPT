@@ -166,7 +166,7 @@ export default function DownloadModelScreen() {
 
         {/* Header */}
         <View style={styles.header}>
-          <TouchableOpacity onPress={() => router.back()} style={styles.back}>
+          <TouchableOpacity onPress={() => router.canGoBack() ? router.back() : router.replace('/(tabs)/profile')} style={styles.back}>
             <Text style={styles.backText}>← Back</Text>
           </TouchableOpacity>
           <Text style={styles.title}>Offline Model</Text>
@@ -179,10 +179,18 @@ export default function DownloadModelScreen() {
             <Text style={styles.modelEmoji}>🧠</Text>
           </View>
           <View style={styles.modelInfo}>
-            <Text style={styles.modelName}>{spec.name}</Text>
+            <Text style={styles.modelName}>Qwen2.5-3B Instruct</Text>
             <Text style={styles.modelMeta}>
-              {spec.sizeMB} MB · Requires {spec.minRamGB} GB RAM
+              ~{spec.sizeMB} MB · Requires {spec.minRamGB} GB RAM
             </Text>
+            <View style={styles.engineRow}>
+              <View style={styles.engineBadge}>
+                <Text style={styles.engineBadgeText}>🤖 llama.cpp (Android)</Text>
+              </View>
+              <View style={[styles.engineBadge, styles.engineBadgeIos]}>
+                <Text style={styles.engineBadgeText}>⚡ MLC Metal (iOS)</Text>
+              </View>
+            </View>
             <Text style={styles.modelDesc}>{spec.description}</Text>
           </View>
         </View>
@@ -445,6 +453,13 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.surfaceAlt, borderRadius: Radius.lg,
     padding: Spacing.md, marginTop: Spacing.md,
   },
+  engineRow: { flexDirection: 'row', gap: 6, marginTop: 6, flexWrap: 'wrap' },
+  engineBadge: {
+    backgroundColor: Colors.primary + '18', borderRadius: Radius.full,
+    paddingHorizontal: 8, paddingVertical: 3,
+  },
+  engineBadgeIos: { backgroundColor: Colors.accent + '22' },
+  engineBadgeText: { ...Typography.caption, color: Colors.textSecondary, fontWeight: '600' },
   infoTitle: { ...Typography.label, color: Colors.textSecondary, marginBottom: Spacing.sm },
   infoText: { ...Typography.bodySmall, color: Colors.textSecondary, lineHeight: 20 },
 });

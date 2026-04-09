@@ -5,13 +5,13 @@
  * Handles: auth token injection, online/offline detection, streaming.
  */
 
-import * as SecureStore from 'expo-secure-store';
+import { setItem, getItem, deleteItem } from './storage';
 import * as Network from 'expo-network';
 
 // ─── Config ───────────────────────────────────────────────────────────────────
 
 const CLOUD_BASE_URL = 'https://api.vetgpt.app';
-const LOCAL_BASE_URL = 'http://192.168.100.24:8000';
+const LOCAL_BASE_URL = 'http://localhost:8000';
 export const BASE_URL = __DEV__ ? LOCAL_BASE_URL : CLOUD_BASE_URL;
 
 const TOKEN_KEY = 'vetgpt_auth_token';
@@ -65,15 +65,15 @@ export interface HistoryItem {
 // ─── Token helpers ────────────────────────────────────────────────────────────
 
 export async function getStoredToken(): Promise<string | null> {
-  return SecureStore.getItemAsync(TOKEN_KEY);
+  return getItem(TOKEN_KEY);
 }
 
 async function saveToken(token: string): Promise<void> {
-  await SecureStore.setItemAsync(TOKEN_KEY, token);
+  await setItem(TOKEN_KEY, token);
 }
 
 async function clearToken(): Promise<void> {
-  await SecureStore.deleteItemAsync(TOKEN_KEY);
+  await deleteItem(TOKEN_KEY);
 }
 
 // ─── Network ──────────────────────────────────────────────────────────────────

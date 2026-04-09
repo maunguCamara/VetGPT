@@ -10,8 +10,8 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import * as SplashScreen from 'expo-splash-screen';
 import * as Network from 'expo-network';
 import { useAuthStore, useAppStore } from '../store';
-import { getStoredToken, getMe } from '../lib/api';
-import { offlineRouter } from '../lib/offlineRouter';
+import { getStoredToken, getMe } from '../app/lib/api';
+import { offlineRouter } from '../app/lib/offlineRouter';
 import { Colors } from '../constants/theme';
 
 SplashScreen.preventAutoHideAsync();
@@ -60,8 +60,9 @@ export default function RootLayout() {
     <GestureHandlerRootView style={{ flex: 1 }}>
       <StatusBar style="light" backgroundColor={Colors.primary} />
       <Stack screenOptions={{ headerShown: false }}>
-        <Stack.Screen name="(auth)"  options={{ animation: 'fade' }} />
-        <Stack.Screen name="(tabs)"  options={{ animation: 'fade' }} />
+        <Stack.Screen name="auth"  options={{ animation: 'fade' }} />
+        <Stack.Screen name="tabs"  options={{ animation: 'fade' }} />
+         <Stack.Screen name="download-model" />
       </Stack>
     </GestureHandlerRootView>
   );

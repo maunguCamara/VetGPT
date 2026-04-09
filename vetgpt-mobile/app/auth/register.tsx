@@ -10,9 +10,9 @@ import {
 } from 'react-native';
 import { useState } from 'react';
 import { router } from 'expo-router';
-import { register } from '../lib/api';
-import { useAuthStore } from '../store';
-import { Colors, Spacing, Radius, Typography, Shadow } from '../constants/theme';
+import { register } from '../../lib/api';
+import { useAuthStore } from '../../store';
+import { Colors, Spacing, Radius, Typography, Shadow } from '../../constants/theme';
 
 // ─── Validation helpers ───────────────────────────────────────────────────────
 

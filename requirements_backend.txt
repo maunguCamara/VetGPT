@@ -6,7 +6,7 @@ uvicorn[standard]==0.30.1
 
 # Auth
 python-jose[cryptography]==3.3.0   # JWT tokens
-passlib[bcrypt]==1.7.4              # password hashing
+bcrypt==4.1.3                      # password hashing (direct, Python 3.12 safe)
 
 # Database (user accounts, query logs)
 sqlalchemy==2.0.31

@@ -2,17 +2,19 @@
 vetgpt/backend/auth.py
 
 JWT authentication + password hashing.
-Provides FastAPI dependencies for route protection.
+Uses bcrypt directly (not passlib) for Python 3.12 compatibility.
 """
 
 import uuid
 from datetime import datetime, timedelta
 from typing import Optional
 
+import bcrypt
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
+from fastapi.security.utils import get_authorization_scheme_param
+from fastapi import Request
 from jose import JWTError, jwt
-from passlib.context import CryptContext
 from pydantic import BaseModel, EmailStr
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -22,11 +24,13 @@ from .database import User, SubscriptionTier, get_db
 
 settings = get_settings()
 
-# Password hashing
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-
-# OAuth2 scheme — token from Authorization: Bearer <token>
+# Standard OAuth2 scheme for authenticated routes
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/login")
+
+# Optional OAuth2 scheme — does NOT auto-reject missing tokens
+oauth2_scheme_optional = OAuth2PasswordBearer(
+    tokenUrl="/api/auth/login", auto_error=False
+)
 
 
 # ──────────────────────────────────────────────
@@ -64,15 +68,24 @@ class Token(BaseModel):
 
 
 # ──────────────────────────────────────────────
-# Password utils
+# Password utils — direct bcrypt (Python 3.12 safe)
 # ──────────────────────────────────────────────
 
 def hash_password(password: str) -> str:
-    return pwd_context.hash(password)
+    """Hash a password using bcrypt. Truncates to 72 bytes (bcrypt limit)."""
+    password_bytes = password.encode("utf-8")[:72]
+    salt = bcrypt.gensalt()
+    return bcrypt.hashpw(password_bytes, salt).decode("utf-8")
 
 
 def verify_password(plain: str, hashed: str) -> bool:
-    return pwd_context.verify(plain, hashed)
+    """Verify a plain password against a bcrypt hash."""
+    try:
+        plain_bytes = plain.encode("utf-8")[:72]
+        hashed_bytes = hashed.encode("utf-8")
+        return bcrypt.checkpw(plain_bytes, hashed_bytes)
+    except Exception:
+        return False
 
 
 # ──────────────────────────────────────────────
@@ -122,7 +135,7 @@ async def get_current_user(
     token: str = Depends(oauth2_scheme),
     db: AsyncSession = Depends(get_db),
 ) -> User:
-    """Dependency: get authenticated user from JWT. 401 if invalid."""
+    """Dependency: get authenticated user from JWT. 401 if missing or invalid."""
     token_data = decode_token(token)
     result = await db.execute(select(User).where(User.id == token_data.user_id))
     user = result.scalar_one_or_none()
@@ -136,12 +149,20 @@ async def get_current_user(
 
 
 async def get_current_user_optional(
-    token: Optional[str] = Depends(oauth2_scheme),
+    token: Optional[str] = Depends(oauth2_scheme_optional),
     db: AsyncSession = Depends(get_db),
 ) -> Optional[User]:
-    """Dependency: like get_current_user but returns None for unauthenticated."""
+    """
+    Dependency: returns User if token provided and valid, None otherwise.
+    Does NOT return 401 for missing tokens — allows unauthenticated access.
+    """
+    if not token:
+        return None
     try:
-        return await get_current_user(token, db)
+        token_data = decode_token(token)
+        result = await db.execute(select(User).where(User.id == token_data.user_id))
+        user = result.scalar_one_or_none()
+        return user if (user and user.is_active) else None
     except HTTPException:
         return None
 
@@ -198,6 +219,5 @@ async def authenticate_user(
             detail="Account is deactivated",
         )
 
-    # Update last login
     user.last_login = datetime.utcnow()
     return user

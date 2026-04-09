@@ -12,10 +12,10 @@ import {
 } from 'react-native';
 import { useState, useEffect } from 'react';
 import { router } from 'expo-router';
-import { modelManager, ModelState, getRecommendedModel } from '../lib/modelManager';
-import { offlineRouter } from '../lib/offlineRouter';
-import { useAppStore } from '../store';
-import { Colors, Spacing, Radius, Typography, Shadow } from '../constants/theme';
+import { modelManager, ModelState, getRecommendedModel } from './lib/modelManager';
+import { offlineRouter } from './lib/offlineRouter';
+import { useAppStore } from './store';
+import { Colors, Spacing, Radius, Typography, Shadow } from './constants/theme';
 
 function formatBytes(bytes: number): string {
   if (bytes < 1024 ** 2) return `${(bytes / 1024).toFixed(0)} KB`;

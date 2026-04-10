@@ -1,5 +1,5 @@
 /**
- * vetgpt-mobile/auth/_layout.tsx
+ * vetgpt-mobile/app/auth/_layout.tsx
  * Root layout — auth gate, navigation setup, network watcher.
  */
 

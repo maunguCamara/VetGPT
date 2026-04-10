@@ -9,7 +9,7 @@ import {
 } from 'react-native';
 import { useState } from 'react';
 import { router } from 'expo-router';
-import { logout } from '../lib/api';
+import { login, logout } from '../lib/api';
 import { Colors, Spacing, Radius, Typography, Shadow } from '../constants/theme';
 import { useAuthStore, useAppStore } from '../store';
 
@@ -44,11 +44,12 @@ function SettingRow({
 }
 
 export default function ProfileScreen() {
-  const { user, logout: storeLogout } = useAuthStore();
+  const { user, isAuthenticated, logout, logout: storeLogout } = useAuthStore();
   const { isOnline, filterSpecies, setFilterSpecies } = useAppStore();
   const [streamingEnabled, setStreamingEnabled] = useState(true);
   const [citationsEnabled, setCitationsEnabled] = useState(true);
   const [hasLocalModel, setHasLocalModel] = useState(false);
+  const showSignOut = isAuthenticated && user !== null;
 
   const isPremium = user?.tier === 'premium' || user?.tier === 'clinic';
 
@@ -165,13 +166,21 @@ export default function ProfileScreen() {
         </View>
 
         {/* Logout */}
+        
+
+        <Text style={styles.version}>VetGPT v1.0.0</Text>
+         {showSignOut && (
         <TouchableOpacity style={styles.logoutBtn} onPress={handleLogout}>
           <Text style={styles.logoutText}>Sign out</Text>
         </TouchableOpacity>
-
-        <Text style={styles.version}>VetGPT v1.0.0</Text>
-
+      )}
+      {!showSignOut && (
+        <TouchableOpacity style={styles.logoutBtn} onPress={() => router.push('/app/(auth)/signin')}>
+          <Text style={styles.loginText}>Sign In</Text>
+        </TouchableOpacity>
+      )}
       </ScrollView>
+     
     </SafeAreaView>
   );
 }
@@ -314,6 +323,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   logoutText: { ...Typography.h4, color: Colors.error },
+  loginText: { ...Typography.h4, color: Colors.primary },
 
   version: {
     ...Typography.caption,

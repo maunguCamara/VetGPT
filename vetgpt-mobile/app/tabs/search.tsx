@@ -206,7 +206,6 @@ export default function SearchScreen() {
         {/* Empty state */}
         {!result && !loading && !error && (
           <View style={styles.emptyState}>
-            <Text style={styles.emptyEmoji}>🔍</Text>
             <Text style={styles.emptyTitle}>Search your vet library</Text>
             <Text style={styles.emptySub}>
               Search across WikiVet, PubMed, FAO, eClinPath and your uploaded PDFs.

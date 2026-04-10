@@ -9,6 +9,8 @@ import {
 } from 'react-native';
 import { Colors, Spacing, Radius, Typography, Shadow } from '../constants/theme';
 import { useAppStore } from '../store';
+import { router } from 'expo-router';
+import * as DocumentPicker from 'expo-document-picker';
 
 const MANUAL_SECTIONS = [
   {
@@ -52,12 +54,40 @@ export default function ManualsScreen() {
 
   function handlePress(item: ManualItem) {
     if (item.source === 'upload') {
-      // Phase 2: trigger document picker
+      // Call function to handle pdf flow
+      uploadPDF();
       return;
     }
     if (item.source) {
       setFilterSource(item.source);
-      // Navigate to search with filter pre-set
+      router.push({
+        pathname: '/(tabs)/search',
+        params: { q: '', source: item.source }
+      });
+    }
+  }
+
+  async function uploadPDF() {
+    try {
+      const result = await DocumentPicker.getDocumentAsync({
+        type: 'application/pdf',
+        copyToCacheDirectory: true,
+      });
+      if (result.assets && result.assets[0]) {
+        // Upload to backend and add to manuals list
+        const formData = new FormData();
+        formData.append('file', {
+          uri: result.assets[0].uri,
+          name: result.assets[0].name,
+          type: 'application/pdf',
+        } as any);
+
+      // Show upload progress
+      //Call ingest endpoint
+        //alert(`Selected file: ${result.name}`);
+      }
+    } catch (error) {
+      console.error('Upload failed:', error);
     }
   }
 

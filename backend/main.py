@@ -27,7 +27,9 @@ from .routes import auth_router, query_router, health_router, set_rag_engine
 settings = get_settings()
 
 # Rate limiter
-limiter = Limiter(key_func=get_remote_address)
+limiter = Limiter(key_func=get_remote_address, 
+                  default_limits=["100/hour"],
+                  storage_uri="memory://")  # In-memory store for simplicity; use Redis in production
 
 
 # ──────────────────────────────────────────────
@@ -76,6 +78,17 @@ app = FastAPI(
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
+# Apply to specific routes
+@router.post("/api/query")
+@limiter.limit("20/minute")
+async def query(request: Request, ...):
+    # Check user tier for different limits
+    user_tier = get_user_tier()
+    if user_tier == "free":
+        limiter.limit("20/minute")(request)
+    elif user_tier == "premium":
+        limiter.limit("100/minute")(request)
+        
 # CORS — allow mobile app and web clients
 app.add_middleware(
     CORSMiddleware,

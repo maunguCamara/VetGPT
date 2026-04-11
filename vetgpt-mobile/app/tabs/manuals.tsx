@@ -5,16 +5,21 @@
 
 import {
   View, Text, SectionList, TouchableOpacity,
-  StyleSheet, SafeAreaView,
+  StyleSheet, SafeAreaView, Alert, ActivityIndicator,
 } from 'react-native';
 import { Colors, Spacing, Radius, Typography, Shadow } from '../constants/theme';
 import { useAppStore } from '../store';
 import { router } from 'expo-router';
 import * as DocumentPicker from 'expo-document-picker';
+import { useState } from 'react';
+import * as FileSystem from 'expo-file-system';
+import { getStoredToken } from '../lib/api';
+import { set } from 'date-fns';
+
 
 const MANUAL_SECTIONS = [
   {
-    title: '✅ Available Now (Open Access)',
+    title: 'Available Now (Open Access)',
     data: [
       { key: 'wikivet',    label: 'WikiVet',          sub: 'CC BY-SA · Full encyclopedia', source: 'wikivet' },
       { key: 'pubmed',     label: 'PubMed Abstracts',  sub: 'Public Domain · Research', source: 'pubmed' },
@@ -51,8 +56,93 @@ interface ManualItem {
 
 export default function ManualsScreen() {
   const { setFilterSource } = useAppStore();
+  const [uploading, setUploading] = useState(false);
+  const [uploadFiles, setUploadedFiles] = useState<string[]>([]);
 
-  function handlePress(item: ManualItem) {
+  function validatePDF(file:DocumentPicker.DocumentPickerAsset): boolean {
+    if (!file.name.toLowerCase().endsWith('.pdf')) {
+      Alert.alert('Invalid file', 'Please select a PDF document.');
+      return false;
+    }
+    if (file.size && file.size > 100 * 1024 * 1024) { // 100MB limit
+      Alert.alert('File too large', 'Please select a PDF smaller than 100MB.');
+      return false;
+    }
+
+    const safeName = file.name.replace(/[^a-z0-9.\-_]/gi, '_');
+    if (safeName !== file.name) {
+      Alert.alert('Invalid filename', 'Filename contains unsupported characters');
+      return false;
+    }
+
+    return true;
+  }
+
+ 
+
+  async function uploadPDF() {
+    try {
+      const result = await DocumentPicker.getDocumentAsync({
+        type: 'application/pdf',
+        copyToCacheDirectory: true,
+      });
+
+      if (result.canceled) return;
+
+      if (!validatePDF(result.assets[0])) return;
+
+      setUploading(true);
+
+
+      const token = await getStoredToken();
+      if (!token) {
+        Alert.alert('Authentication required', 'Please sign in to upload manuals.');
+        setUploading(false);
+        router.push('/(auth)/signin');
+        return;
+      }
+
+      // Upload to backend and add to manuals list
+      if (result.assets && result.assets[0]) {
+        
+      const formData = new FormData();
+      formData.append('file', {
+        uri: result.assets[0].uri,
+        name: result.assets[0].name.replace(/[^a-z0-9.\-_]/gi, '_'),
+        type: 'application/pdf',
+      } as any);
+
+      //Backend uploading endpoint
+      const res = await fetch('https://localhost:8000/api/manuals/upload', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'multipart/form-data',
+        },
+        body: formData,
+      });
+
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.detail || 'Upload failed');
+      }
+
+      const data = await res.json();
+      setUploadedFiles(prev => [...prev, result.assets[0].name]);
+      Alert.alert('Success', `${result.assets[0].name}" uploaded successfully.`);
+
+      // Show upload progress
+      //Call ingest endpoint
+        //alert(`Selected file: ${result.name}`);
+      }
+    } catch (error) {
+      console.error('Upload failed:', error);
+      Alert.alert('Upload Failed', error.message || 'Could not upload file. Please try again.');
+    }finally {
+      setUploading(false);
+    }
+  }
+   function handlePress(item: ManualItem) {
     if (item.source === 'upload') {
       // Call function to handle pdf flow
       uploadPDF();
@@ -64,30 +154,6 @@ export default function ManualsScreen() {
         pathname: '/(tabs)/search',
         params: { q: '', source: item.source }
       });
-    }
-  }
-
-  async function uploadPDF() {
-    try {
-      const result = await DocumentPicker.getDocumentAsync({
-        type: 'application/pdf',
-        copyToCacheDirectory: true,
-      });
-      if (result.assets && result.assets[0]) {
-        // Upload to backend and add to manuals list
-        const formData = new FormData();
-        formData.append('file', {
-          uri: result.assets[0].uri,
-          name: result.assets[0].name,
-          type: 'application/pdf',
-        } as any);
-
-      // Show upload progress
-      //Call ingest endpoint
-        //alert(`Selected file: ${result.name}`);
-      }
-    } catch (error) {
-      console.error('Upload failed:', error);
     }
   }
 

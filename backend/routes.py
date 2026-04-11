@@ -340,3 +340,26 @@ async def _log_query(
         db.add(log)
     except Exception:
         pass  # never let logging break a query response
+
+@router.post("/api/analytics")
+async def track_analytics(
+    data: dict,
+    user: User = Depends(get_current_user_optional),
+    db: AsyncSession = Depends(get_db),
+):
+    """Track analytics events like query latency, model performance"""
+    
+    events = data.get('events', [])
+    
+    for event in events:
+        # Create analytics record
+        analytics = AnalyticsEvent(
+            user_id=user.id if user else None,
+            event_type=event.get('event'),
+            properties=event.get('properties', {}),
+            created_at=datetime.utcnow()
+        )
+        db.add(analytics)
+    
+    await db.commit()
+    return {"status": "ok", "events_received": len(events)}

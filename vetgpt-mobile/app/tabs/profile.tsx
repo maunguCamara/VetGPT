@@ -133,7 +133,7 @@ export default function ProfileScreen() {
         <Text style={styles.sectionLabel}>Default species filter</Text>
         <View style={styles.speciesGrid}>
           {speciesOptions.map((s) => {
-            const isActive = filterSpecies === s.toLowercAse() || (s === 'None' && !filterSpecies);
+            const isActive = filterSpecies === s.toLowerCase() || (s === 'None' && !filterSpecies);
             return (
               <TouchableOpacity
                 key={s}

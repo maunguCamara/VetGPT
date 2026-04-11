@@ -28,6 +28,9 @@ from fastapi.security import OAuth2PasswordRequestForm
 from pydantic import BaseModel, Field
 from sqlalchemy import select, desc
 from sqlalchemy.ext.asyncio import AsyncSession
+from slowapi import Limiter
+from slowapi.util import get_remote_address
+from .main import limiter
 
 from .auth import (
     UserCreate, UserOut, Token,
@@ -57,6 +60,15 @@ def get_rag_engine() -> VetRAGEngine:
         raise HTTPException(status_code=503, detail="RAG engine not initialised")
     return _rag_engine
 
+def get_rate_limit(user: User | None) -> str:
+    """Return rate limit string based on user tier."""
+    if not user:
+        return "5/minute"  # Unauthenticated
+    if user.tier.value == "free":
+        return "20/minute"
+    elif user.tier.value in ["premium", "clinic"]:
+        return "100/minute"
+    return "20/minute"
 
 # ──────────────────────────────────────────────
 # Request / Response schemas
@@ -145,12 +157,15 @@ query_router = APIRouter(prefix="/api/query", tags=["query"])
 
 
 @query_router.post("", response_model=QueryResponse)
+@limiter.limit(lambda request: get_rate_limit(request.state.user))
 async def query(
-    request: QueryRequest,
+    request: Request,
+    query_req: QueryRequest,
     db: AsyncSession = Depends(get_db),
     user: User | None = Depends(get_current_user_optional),
     engine: VetRAGEngine = Depends(get_rag_engine),
 ):
+
     """
     Main RAG query endpoint.
 
@@ -158,8 +173,9 @@ async def query(
     - Premium users: 100 queries/min, top_k up to 20
     - Unauthenticated: 5 queries/min, top_k capped at 3 (demo mode)
     """
+    request.state.user = user  # for rate limiter
     # Cap top_k by tier
-    top_k = request.top_k
+    top_k = query_req.top_k
     if not user:
         top_k = min(top_k, 3)
     elif user.tier.value == "free":

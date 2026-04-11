@@ -42,16 +42,16 @@ async def lifespan(app: FastAPI):
     Runs on startup: initialise DB and RAG engine.
     Runs on shutdown: cleanup.
     """
-    print("🚀 VetGPT API starting up...")
+    print("VetGPT API starting up...")
 
     # Create DB tables
     await init_db()
-    print("✓ Database ready")
+    print("Database ready")
 
     # Initialise RAG engine (loads ChromaDB + LLM clients)
     engine = VetRAGEngine()
     set_rag_engine(engine)
-    print(f"✓ RAG engine ready ({engine.health()['chroma_chunks']:,} chunks indexed)")
+    print(f"RAG engine ready ({engine.health()['chroma_chunks']:,} chunks indexed)")
 
     yield  # app is running
 
@@ -78,17 +78,6 @@ app = FastAPI(
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
-# Apply to specific routes
-@router.post("/api/query")
-@limiter.limit("20/minute")
-async def query(request: Request, ...):
-    # Check user tier for different limits
-    user_tier = get_user_tier()
-    if user_tier == "free":
-        limiter.limit("20/minute")(request)
-    elif user_tier == "premium":
-        limiter.limit("100/minute")(request)
-        
 # CORS — allow mobile app and web clients
 app.add_middleware(
     CORSMiddleware,
@@ -97,17 +86,21 @@ app.add_middleware(
         "http://localhost:8081",        # React Native Expo dev
         "https://vetgpt.app",           # production web
         "vetgpt://",                    # mobile deep link
+        "http:192.168.*.*",
+        "*",                   
     ],
+                        
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
 
+
+
 # ──────────────────────────────────────────────
 # Global error handler
 # ──────────────────────────────────────────────
-
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):
     return JSONResponse(
@@ -118,7 +111,6 @@ async def global_exception_handler(request: Request, exc: Exception):
         },
     )
 
-
 # ──────────────────────────────────────────────
 # Register routers
 # ──────────────────────────────────────────────
@@ -126,7 +118,6 @@ async def global_exception_handler(request: Request, exc: Exception):
 app.include_router(auth_router)
 app.include_router(query_router)
 app.include_router(health_router)
-
 
 # ──────────────────────────────────────────────
 # Root

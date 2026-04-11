@@ -5,10 +5,9 @@
 
 
 import * as SplashScreen from 'expo-splash-screen';
+import { Stack } from 'expo-router';
 
 SplashScreen.preventAutoHideAsync();
-
-import { Stack } from 'expo-router';
 
 export default function AuthLayout() {
   return (
@@ -17,10 +16,11 @@ export default function AuthLayout() {
         name="login" 
         options={{ 
           title: 'Sign In',
-          headerBackVisible: false  // Remove back button
+       
         }} 
       />
-      <Stack.Screen name="register" />
+      <Stack.Screen name="register" options={{ title: 'Create Account'}} />
+      <Stack.Screen name="signin" options={{ title: 'Sign In'}} />
     </Stack>
   );
 }

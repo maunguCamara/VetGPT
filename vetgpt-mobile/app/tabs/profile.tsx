@@ -52,6 +52,7 @@ export default function ProfileScreen() {
   const showSignOut = isAuthenticated && user !== null;
 
   const isPremium = user?.tier === 'premium' || user?.tier === 'clinic';
+  const speciesOptions = ['None', 'Canine', 'Feline', 'Equine', 'Bovine'];
 
   async function handleLogout() {
     Alert.alert('Sign out', 'Are you sure you want to sign out?', [
@@ -131,23 +132,23 @@ export default function ProfileScreen() {
         {/* Species filter */}
         <Text style={styles.sectionLabel}>Default species filter</Text>
         <View style={styles.speciesGrid}>
-          {['None', 'Canine', 'Feline', 'Bovine', 'Equine', 'Mixed'].map((s) => (
-            <TouchableOpacity
-              key={s}
-              style={[
-                styles.speciesChip,
-                (filterSpecies === s || (s === 'None' && !filterSpecies)) && styles.speciesChipActive,
-              ]}
-              onPress={() => setFilterSpecies(s === 'None' ? null : s.toLowerCase())}
-            >
-              <Text style={[
-                styles.speciesChipText,
-                (filterSpecies === s || (s === 'None' && !filterSpecies)) && styles.speciesChipTextActive,
-              ]}>
-                {s}
-              </Text>
-            </TouchableOpacity>
-          ))}
+          {speciesOptions.map((s) => {
+            const isActive = filterSpecies === s.toLowercAse() || (s === 'None' && !filterSpecies);
+            return (
+              <TouchableOpacity
+                key={s}
+                style={[styles.speciesChip, isActive && styles.speciesChipActive]}
+                onPress={() => setFilterSpecies(s === 'None' ? '' : s.toLowerCase())}
+              >
+                <Text style={[
+                  styles.speciesChipText,
+                  isActive && styles.speciesChipTextActive,
+                ]}>
+                  {s}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
         </View>
 
         {/* Phase 2: Download offline model */}

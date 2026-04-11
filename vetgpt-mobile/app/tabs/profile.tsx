@@ -104,7 +104,7 @@ export default function ProfileScreen() {
             <Text style={styles.upgradeSub}>
               Unlock X-ray analysis, image recognition, advanced OCR and more.
             </Text>
-            <TouchableOpacity style={styles.upgradeBtn}>
+            <TouchableOpacity style={styles.upgradeBtn}onPress={() => router.push('/(modals)/plans')}>
               <Text style={styles.upgradeBtnText}>View plans →</Text>
             </TouchableOpacity>
           </View>

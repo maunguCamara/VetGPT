@@ -184,12 +184,15 @@ export default function ChatScreen() {
   return (
     <SafeAreaView style={styles.safe}>
       <View style={styles.header}>
-        <View>
-          <Text style={styles.headerTitle}>VetGPT</Text>
-          <Text style={styles.headerSub}>
-            {isOnline ? '🟢 Online' : '🔴 Offline'}
+        <View style={styles.headerLeft}>
+          <Text style={styles.headerTitle}>Chat</Text>
+          <View style={styles.statusIndicator}>
+            <View style={[styles.statusDot, {backgroundColor: isOnline ? Colors.online : Colors.offline}]} />
+                    <Text style={styles.headerSub}>
+            {isOnline ? ' Online' : ' Offline'}
             {filterSpecies ? `  ·  ${filterSpecies}` : ''}
           </Text>
+          </View>
         </View>
         <TouchableOpacity onPress={newSession} style={styles.newChatBtn} activeOpacity={0.8}>
           <Text style={styles.newChatText}>+ New</Text>
@@ -257,7 +260,11 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.primary,
     paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm, paddingTop: Spacing.md,
   },
+  headerLeft: { flex: 1 },
   headerTitle: { ...Typography.h3, color: '#fff' },
+  statusIndicator: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  statusDot: { width: 8, height: 8, borderRadius: 4 },
+
   headerSub: { ...Typography.caption, color: 'rgba(255,255,255,0.75)', marginTop: 2 },
   newChatBtn: {
     backgroundColor: 'rgba(255,255,255,0.2)',

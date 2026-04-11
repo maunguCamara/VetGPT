@@ -8,7 +8,7 @@ import {
   StyleSheet, ActivityIndicator, SafeAreaView, ScrollView,
   KeyboardAvoidingView, Platform, Keyboard,
 } from 'react-native';
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { queryVet } from '../lib/api';
 import type { QueryResponse, Citation } from '../lib/api';
 import { useAppStore } from '../store';
@@ -70,8 +70,31 @@ export default function SearchScreen() {
   const [result, setResult]       = useState<QueryResponse | null>(null);
   const [error, setError]         = useState('');
   const inputRef                  = useRef<TextInput>(null);
+  const { setFilterSpecies, setFilterSource, filterSpecies, filterSource } = useAppStore();
 
-  const { setFilterSpecies, setFilterSource } = useAppStore();
+  useEffect(() => {
+    if (filterSpecies) {
+      const speciesMap: Record<string, string> = {
+        canine: 'Canine',
+        feline: 'Feline',
+        bovine: 'Bovine',
+        equine: 'Equine',
+        ovine: 'Ovine',
+        porcine: 'Porcine',
+        exotic: 'Exotic',
+      };
+      setSpecies(speciesMap[filterSpecies] || 'All');
+    }
+    if (filterSource) {
+      const sourceMap: Record<string, string> = {
+        wikivet: 'WikiVet',
+        pubmed: 'PubMed',
+        fao: 'FAO',
+        eclinpath: 'eClinPath',
+      };
+      setSource(sourceMap[filterSource] || 'All');
+    }
+  }, []);
 
   async function handleSearch() {
     const q = query.trim();
@@ -85,10 +108,14 @@ export default function SearchScreen() {
     setResult(null);
 
     try {
+        const speciesParam = species !== 'All' ? species.toLowerCase() : undefined;
+        const sourceParam = source !== 'All' ? source.toLowerCase() : undefined;
+
       const res = await queryVet(q, {
         top_k: 8,
-        filter_species: species !== 'All' ? species.toLowerCase() : undefined,
-        filter_source:  source  !== 'All' ? source.toLowerCase()  : undefined,
+        filter_species: speciesParam,
+        filter_source: sourceParam,
+
       });
       setResult(res);
 

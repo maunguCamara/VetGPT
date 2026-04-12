@@ -26,7 +26,7 @@ import {
   analyzeImage, analyzeXray, analyzeWound, analyzeLesion,
   analyzeParasite, analyzeCytology, extractOCRText,
   VisionAnalysisResult, OCRResult, ImageType,
-} from '../../lib/visionApi';
+} from '..//lib/visionApi';
 import { Colors, Spacing, Radius, Typography, Shadow } from '../../constants/theme';
 
 // ─── Analysis type config ─────────────────────────────────────────────────────

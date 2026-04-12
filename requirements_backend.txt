@@ -26,3 +26,12 @@ slowapi==0.1.9
 
 # HTTP client (for health checks)
 httpx==0.27.0
+
+
+# Phase 3 — Vision Pipeline
+openai==1.35.0                    # GPT-4o Vision
+google-generativeai==0.7.2        # Gemini 2.0 Flash fallback
+google-cloud-documentai==2.24.0   # Document AI OCR
+pydicom==2.4.4                    # DICOM X-ray file support
+Pillow==10.4.0                    # Image processing
+numpy==1.26.4                     # Pixel array manipulation

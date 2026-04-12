@@ -1,13 +1,4 @@
-import { useEffect } from 'react';
-import { Stack } from 'expo-router';
-import { StatusBar } from 'expo-status-bar';
-import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import * as SplashScreen from 'expo-splash-screen';
-import * as Network from 'expo-network';
-import { useAuthStore, useAppStore } from '../../store';
-import { getStoredToken, getMe } from '../lib/api';
-import { offlineRouter } from '../lib/offlineRouter';
-import { Colors } from '../../constants/theme';
+import { Colors, Typography } from '../../constants/theme';
 import { Tabs } from 'expo-router';
 
 
@@ -17,8 +8,22 @@ export default function TabLayout() {
       screenOptions={{
         tabBarActiveTintColor: Colors.primary,
         tabBarInactiveTintColor: Colors.textMuted,
+                tabBarStyle: {
+          backgroundColor: Colors.surface,
+          borderTopColor: Colors.border,
+          height: 60,
+          paddingBottom: 8,
+        },
+        tabBarLabelStyle: {
+          ...Typography.caption,
+          fontSize: 11,
+        },
         headerStyle: { backgroundColor: Colors.primary },
         headerTintColor: '#fff',
+                headerTitleStyle: {
+          ...Typography.h3,
+          color: '#fff',
+        },
       }}
     >
       <Tabs.Screen

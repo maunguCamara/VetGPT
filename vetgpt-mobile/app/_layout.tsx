@@ -63,7 +63,7 @@ export default function RootLayout() {
         <Stack.Screen name="auth"  options={{ animation: 'fade' }} />
         <Stack.Screen name="tabs"  options={{ animation: 'fade' }} />
         <Stack.Screen name="(modals)" options={{ presentation: 'modal', headerShown: false }} />
-         <Stack.Screen name="download-model" />
+         <Stack.Screen name="download-model" options={{ presentation: 'modal', headerShown: false }} />
       </Stack>
     </GestureHandlerRootView>
   );

@@ -18,19 +18,15 @@ from fastapi.responses import JSONResponse
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
+from slowapi.middleware import SlowAPIMiddleware
 
 from .config import get_settings
 from .database import init_db
 from .rag_engine import VetRAGEngine
 from .routes import auth_router, query_router, health_router, set_rag_engine
+from .rate_limiter import limiter
 
 settings = get_settings()
-
-# Rate limiter
-limiter = Limiter(key_func=get_remote_address, 
-                  default_limits=["100/hour"],
-                  storage_uri="memory://")  # In-memory store for simplicity; use Redis in production
-
 
 # ──────────────────────────────────────────────
 # Lifespan — startup / shutdown
@@ -57,7 +53,15 @@ async def lifespan(app: FastAPI):
 
     print("VetGPT API shutting down...")
 
-
+async def global_exception_handler(request: Request, exc: Exception):
+    """Handle all exceptions."""
+    return JSONResponse(
+        status_code=500,
+        content={
+            "error": "Internal server error",
+            "detail": str(exc) if settings.debug else "Something went wrong",
+        },
+    )
 # ──────────────────────────────────────────────
 # App
 # ──────────────────────────────────────────────
@@ -76,7 +80,24 @@ app = FastAPI(
 
 # Rate limiting
 app.state.limiter = limiter
-app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
+# Add rate limiting middleware
+app.add_middleware(SlowAPIMiddleware)
+
+# Add rate limit exception handler
+
+app.add_exception_handler(Exception, global_exception_handler)
+async def rate_limit_exceeded_handler(request: Request, exc: RateLimitExceeded):
+    return JSONResponse(
+        status_code=429,
+        content={
+            "error": "Rate limit exceeded. Try again later.",
+            
+        }
+    )
+
+
+
 
 # CORS — allow mobile app and web clients
 app.add_middleware(

@@ -20,7 +20,7 @@ from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
 from slowapi.middleware import SlowAPIMiddleware
 
-from .config import get_settings
+from config.book_registry import BOOK_REGISTRY, get_book_metadata, detect_book, get_settings
 from .database import init_db
 from .rag_engine import VetRAGEngine
 from .routes import auth_router, query_router, health_router, set_rag_engine

@@ -934,7 +934,16 @@ def print_registry_summary():
         count = len(books_by_status(status))
         if count:
             c.print(f"  {status_colors[status]}: {count} titles")
-
+__all__ = [
+    "BOOK_REGISTRY",
+    "BookMeta",
+    "OPEN_ACCESS",
+    "PENDING_LICENSE",
+    "detect_book",
+    "books_by_species",
+    "books_by_status",
+    "print_registry_summary",
+]
 
 if __name__ == "__main__":
     print_registry_summary()

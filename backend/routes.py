@@ -31,6 +31,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from slowapi import Limiter
 from slowapi.util import get_remote_address
 from .rate_limiter import limiter, get_rate_limit_for_user
+from .database import User, QueryLog, QueryStatus, get_db, AnalyticsEvent
 
 
 from .auth import (
@@ -180,14 +181,14 @@ async def query(
 
     try:
         rag_response = await engine.query(
-            query_text=request.query,
+            query_text=query_req.query,
             top_k=top_k,
-            filter_species=request.filter_species,
-            filter_source=request.filter_source,
+            filter_species=query_req.filter_species,
+            filter_source=query_req.filter_source,
         )
     except Exception as e:
         await _log_query(
-            db, user, request.query, "", [], 0, 0.0, "", 0,
+            db, user, query_req.query, "", [], 0, 0.0, "", 0,
             QueryStatus.ERROR, str(e)
         )
         raise HTTPException(status_code=500, detail=f"Query failed: {e}")
@@ -196,7 +197,7 @@ async def query(
     await _log_query(
         db=db,
         user=user,
-        query=request.query,
+        query=query_req.query,
         answer=rag_response.answer,
         citations=[c.to_dict() for c in rag_response.citations],
         chunks=rag_response.chunks_retrieved,

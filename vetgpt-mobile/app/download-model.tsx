@@ -166,7 +166,7 @@ export default function DownloadModelScreen() {
 
         {/* Header */}
         <View style={styles.header}>
-          <TouchableOpacity onPress={() => router.replace('/(tabs)/profile')} style={styles.back}>
+          <TouchableOpacity onPress={() => router.replace('/tabs/profile')} style={styles.back}>
             <Text style={styles.backText}>← Back</Text>
           </TouchableOpacity>
           <Text style={styles.title}>Offline Model</Text>

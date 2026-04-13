@@ -21,7 +21,7 @@ function TabIcon({ emoji, label, focused, premium }: {
 export default function TabLayout() {
   const { isAuthenticated, isLoading } = useAuthStore();
   if (isLoading) return null;
-  if (!isAuthenticated) return <Redirect href="/(auth)/login" />;
+  if (!isAuthenticated) return <Redirect href="/auth/signin" />;
   return (
     <Tabs
       screenOptions={{

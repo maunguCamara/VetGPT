@@ -112,7 +112,7 @@ export default function SignInScreen() {
       const res = await login(email.trim().toLowerCase(), password);
       setUser(res.user);
       // Use replace to remove signin from navigation stack
-      router.replace('/(tabs)/chat');
+      router.replace('/tabs/chat');
     } catch (err: any) {
       const msg = err?.message ?? 'Login failed. Please check your credentials.';
       Alert.alert('Login failed', msg);
@@ -143,6 +143,7 @@ export default function SignInScreen() {
             placeholder="vet@clinic.com"
             keyboardType="email-address"
             maxLength={254}
+            autoCapitalize="none"
           />
 
           <Field
@@ -168,7 +169,7 @@ export default function SignInScreen() {
           </TouchableOpacity>
 
           <TouchableOpacity 
-            onPress={() => router.push('/(auth)/register')} 
+            onPress={() => router.push('/auth/register')} 
             style={styles.registerLink}
           >
             <Text style={styles.registerLinkText}>

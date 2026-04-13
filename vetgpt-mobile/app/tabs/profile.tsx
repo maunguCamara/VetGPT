@@ -63,7 +63,7 @@ export default function ProfileScreen() {
         onPress: async () => {
           await logout();
           storeLogout();
-          router.replace('/(auth)/login');
+          router.replace('/auth/signin');
         },
       },
     ]);
@@ -104,7 +104,7 @@ export default function ProfileScreen() {
             <Text style={styles.upgradeSub}>
               Unlock X-ray analysis, image recognition, advanced OCR and more.
             </Text>
-            <TouchableOpacity style={styles.upgradeBtn}onPress={() => router.push('/(modals)/plans')}>
+            <TouchableOpacity style={styles.upgradeBtn}onPress={() => router.push('/modals/plans')}>
               <Text style={styles.upgradeBtnText}>View plans →</Text>
             </TouchableOpacity>
           </View>
@@ -176,7 +176,7 @@ export default function ProfileScreen() {
         </TouchableOpacity>
       )}
       {!showSignOut && (
-        <TouchableOpacity style={styles.logoutBtn} onPress={() => router.push('/app/(auth)/signin')}>
+        <TouchableOpacity style={styles.logoutBtn} onPress={() => router.push('/auth/signin')}>
           <Text style={styles.loginText}>Sign In</Text>
         </TouchableOpacity>
       )}

@@ -11,11 +11,18 @@ import { Colors, Spacing, Radius, Typography, Shadow } from '../constants/theme'
 import { useAppStore } from '../store';
 import { router } from 'expo-router';
 import * as DocumentPicker from 'expo-document-picker';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import * as FileSystem from 'expo-file-system';
 import { getStoredToken } from '../lib/api';
 import { set } from 'date-fns';
 
+interface ManualItem {
+  key: string;
+  label: string;
+  sub: string;
+  source: string | null;
+  species?: string[];
+}
 
 const MANUAL_SECTIONS = [
   {
@@ -47,17 +54,39 @@ const MANUAL_SECTIONS = [
   },
 ];
 
-interface ManualItem {
-  key: string;
-  label: string;
-  sub: string;
-  source: string | null;
-}
 
 export default function ManualsScreen() {
+  const [search, setSearch] = useState('');
   const { setFilterSource } = useAppStore();
   const [uploading, setUploading] = useState(false);
   const [uploadFiles, setUploadedFiles] = useState<string[]>([]);
+
+  // Filter by search text
+  const filtered = useMemo(() => {
+    const q = search.toLowerCase().trim();
+    if (!q) return MANUAL_SECTIONS;
+    return MANUAL_SECTIONS.map(section => ({
+      ...section,
+      data: section.data.filter(
+        m => m.label.toLowerCase().includes(q) || m.sub.toLowerCase().includes(q)
+      )
+    })).filter(section => section.data.length > 0);
+  }, [search]);
+
+  const sections = useMemo(() => {
+    const available = filtered.map(section => ({
+      ...section,
+      data: section.data.filter(m => m.source !== null)
+    })).filter(section => section.data.length > 0);
+    const pending = filtered.map(section => ({
+      ...section,
+      data: section.data.filter(m => m.source === null)
+    })).filter(section => section.data.length > 0);
+    return [
+      ...(available.length ? [{ title: '✅ Available Now (Open Access)', data: available.flatMap(s => s.data) }] : []),
+      ...(pending.length  ? [{ title: '⏳ Pending License',             data: pending.flatMap(s => s.data)  }] : []),
+    ];
+  }, [filtered]);
 
   function validatePDF(file:DocumentPicker.DocumentPickerAsset): boolean {
     if (!file.name.toLowerCase().endsWith('.pdf')) {
@@ -81,18 +110,17 @@ export default function ManualsScreen() {
  
 
   async function uploadPDF() {
+    setUploading(true);
     try {
       const result = await DocumentPicker.getDocumentAsync({
         type: 'application/pdf',
         copyToCacheDirectory: true,
+        multiple: false,
       });
 
       if (result.canceled) return;
 
-      if (!validatePDF(result.assets[0])) return;
-
-      setUploading(true);
-
+      if (!validatePDF(result.assets[0])) return;  
 
       const token = await getStoredToken();
       if (!token) {

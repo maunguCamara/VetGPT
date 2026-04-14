@@ -28,6 +28,8 @@ from .rate_limiter import limiter
 from .config import get_settings
 from .admin_routes import admin_router
 from .analytics import AnalyticsService
+from .admin_routes import admin_router
+from .vision_routes import vision_router
 
 settings = get_settings()
 
@@ -142,6 +144,8 @@ async def global_exception_handler(request: Request, exc: Exception):
 app.include_router(auth_router)
 app.include_router(query_router)
 app.include_router(health_router)
+app.include_router(admin_router)
+app.include_router(vision_router)
 
 # ──────────────────────────────────────────────
 # Root

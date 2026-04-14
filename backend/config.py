@@ -47,6 +47,8 @@ class Settings(BaseSettings):
     # Premium features
     premium_features: list[str] = ["xray", "image_recognition", "advanced_ocr"]
 
+    admin_emails: str = "camara@admin.com"  # comma-separated list of admin emails
+
     class Config:
         env_file = ".env"
         env_file_encoding = "utf-8"

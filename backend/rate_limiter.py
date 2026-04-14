@@ -228,7 +228,7 @@ __all__ = [
     "InMemoryRateLimiter",
     "RATE_LIMITS",
     "VISION_RATE_LIMITS",
-    "_limiter",
+    "limiter",
     "standard_rate_limit",
     "vision_rate_limit",
     "rate_limit_dependency",

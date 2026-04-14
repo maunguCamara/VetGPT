@@ -46,6 +46,7 @@ export interface QueryResponse {
   query: string;
   answer: string;
   citations: Citation[];
+  formatted_references: string[];
   chunks_retrieved: number;
   top_score: number;
   llm_model: string;

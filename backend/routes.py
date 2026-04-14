@@ -102,6 +102,7 @@ class QueryResponse(BaseModel):
     query: str
     answer: str
     citations: list[dict]
+    formatted_references: list[str]
     chunks_retrieved: int
     top_score: float
     llm_model: str

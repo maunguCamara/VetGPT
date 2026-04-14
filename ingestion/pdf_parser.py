@@ -111,7 +111,7 @@ class VetPDFParser:
                 parsed = self._parse_page(page, page_num + 1)
                 if parsed.word_count >= self.min_page_words:
                     pages.append(parsed)
-            # doc.close() called automatically by context manager
+            doc.close()
 
         parsed_doc = ParsedDocument(
             source_path=str(pdf_path.resolve()),

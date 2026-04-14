@@ -97,7 +97,7 @@ class InMemoryRateLimiter:
 
 
 # Singleton
-_limiter = InMemoryRateLimiter()
+limiter = InMemoryRateLimiter()
 
 
 # ─── Redis store (production) ─────────────────────────────────────────────────

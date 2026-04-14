@@ -1,0 +1,22 @@
+============================= test session starts ==============================
+platform linux -- Python 3.12.3, pytest-9.0.3, pluggy-1.6.0 -- /usr/bin/python3
+cachedir: .pytest_cache
+rootdir: /home/angt-whiz/Documents/VetGPT
+configfile: pytest.ini
+plugins: asyncio-1.3.0, anyio-4.2.0
+asyncio: mode=Mode.AUTO, debug=False, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function
+collecting ... collected 54 items
+
+tests/test_phase4_e2e.py::TestRateLimiter::test_rate_limiter_imports PASSED [  1%]
+tests/test_phase4_e2e.py::TestRateLimiter::test_rate_limit_tiers_are_ordered PASSED [  3%]
+tests/test_phase4_e2e.py::TestRateLimiter::test_vision_limits_stricter_than_standard PASSED [  5%]
+tests/test_phase4_e2e.py::TestRateLimiter::test_in_memory_limiter_allows_under_limit PASSED [  7%]
+tests/test_phase4_e2e.py::TestRateLimiter::test_in_memory_limiter_blocks_over_limit PASSED [  9%]
+tests/test_phase4_e2e.py::TestRateLimiter::test_in_memory_limiter_resets_after_window PASSED [ 11%]
+tests/test_phase4_e2e.py::TestRateLimiter::test_different_keys_are_independent PASSED [ 12%]
+tests/test_phase4_e2e.py::TestRateLimiter::test_rate_limit_endpoint_returns_429 
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! KeyboardInterrupt !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+/home/angt-whiz/.local/lib/python3.12/site-packages/transformers/utils/import_utils.py:2473: KeyboardInterrupt
+(to show a full traceback on KeyboardInterrupt use --full-trace)
+============================== 7 passed in 7.87s ===============================

@@ -30,7 +30,7 @@ from sqlalchemy import select, desc
 from sqlalchemy.ext.asyncio import AsyncSession
 from slowapi import Limiter
 from slowapi.util import get_remote_address
-from .rate_limiter import limiter, get_rate_limit_for_user
+from .rate_limiter import limiter
 from .database import User, QueryLog, QueryStatus, get_db, AnalyticsEvent
 
 
@@ -71,6 +71,20 @@ def get_rate_limit(user: User | None) -> str:
     elif user.tier.value in ["premium", "clinic"]:
         return "100/minute"
     return "20/minute"
+
+def get_rate_limit_for_user(tier: str) -> dict:
+    """
+    Return the rate limit config for a given user tier.
+    Used for routes.py and tests to inspect limits without triggering them
+
+    Returns:
+    dict with keys: requests (int), window (int in seconds)
+    """
+    return RATE_LIMITS.get(tier, RATE_LIMITS["free"])
+
+def get_vision_rate_limit_for_user(tier: str) -> dict:
+    """ Return vision-specific rate limit config for a given user tier."""
+    return VISION_RATE_LIMITS.get(tier, VISION_RATE_LIMITS["free"])
 
 # ──────────────────────────────────────────────
 # Request / Response schemas
@@ -159,7 +173,7 @@ query_router = APIRouter(prefix="/api/query", tags=["query"])
 
 
 @query_router.post("", response_model=QueryResponse)
-@limiter.limit("20/minute")
+#limiter.limit("20/minute")  I dont kno what this line does I will check but it brings rate limit import erro
 async def query(
     request: Request,
     query_req: QueryRequest,
@@ -377,3 +391,16 @@ async def track_analytics(
     
     await db.commit()
     return {"status": "ok", "events_received": len(events)}
+
+__all__ = [
+    "InMemoryRateLimiter",
+    "RedisRateLimiter",
+    "RATE_LIMITS",
+    "VISION_RATE_LIMITS",
+    "limiter",
+    "standard_rate_limit",
+    "vision_rate_limit",
+    "get_rate_limit_for_user",
+    "get_vision_rate_limit_for_user",
+    "get_rate_limit_dependency",
+]

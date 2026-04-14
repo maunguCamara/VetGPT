@@ -26,6 +26,8 @@ from .rag_engine import VetRAGEngine
 from .routes import auth_router, query_router, health_router, set_rag_engine
 from .rate_limiter import limiter
 from .config import get_settings
+from .admin_routes import admin_router
+from .analytics import AnalyticsService
 
 settings = get_settings()
 

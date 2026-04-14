@@ -24,11 +24,13 @@ from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from .auth import get_current_user
+from .auth import get_current_user, require_premium
 from .database import User, SubscriptionTier, get_db
 from .analytics import analytics
 from .config import get_settings
 from ingestion.embedder import VetVectorStore
+from .routes import get_rag_engine
+from .rag_engine import VetRAGEngine
 
 settings = get_settings()
 admin_router = APIRouter(prefix="/api/admin", tags=["admin"])

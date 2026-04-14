@@ -39,4 +39,11 @@ __all__ = [
     "query_router",
     "health_router",
     "set_rag_engine",
+    "InMemoryRateLimiter",
+    "RATE_LIMITS",
+    "VISION_RATE_LIMITS",
+    "_limiter",
+    "standard_rate_limit",
+    "vision_rate_limit",
+    "rate_limit_dependency",
 ]

@@ -12,6 +12,7 @@ from dataclasses import dataclass, field
 from typing import Optional
 from rich.console import Console
 
+
 console = Console()
 
 
@@ -45,6 +46,7 @@ class ParsedDocument:
 
 
 class VetPDFParser:
+
     """
     Parses veterinary PDF manuals with clean text extraction.
 
@@ -109,7 +111,7 @@ class VetPDFParser:
                 parsed = self._parse_page(page, page_num + 1)
                 if parsed.word_count >= self.min_page_words:
                     pages.append(parsed)
-            # closed automatically by context manager (with block)
+            doc.close()
 
         parsed_doc = ParsedDocument(
             source_path=str(pdf_path.resolve()),
@@ -242,3 +244,52 @@ class VetPDFParser:
             "filename": path.name,
             "source": "pdf",
         }
+
+class VetPDFParserWithRegistry(VetPDFParser):
+    """
+    Extended PDF parser with book registry integration.
+    
+    Auto-detects which book a PDF is from its filename,
+    enriches metadata with publisher, citation, legal status, etc.
+    Falls back to generic metadata if book is not in registry.
+    """
+    
+    def parse(self, pdf_path: str | Path) -> ParsedDocument:
+        """Parse PDF and enrich with registry metadata."""
+        # First, parse using parent class method
+        doc = super().parse(pdf_path)
+        
+        # Try to detect book from filename
+        from config.book_registry import detect_book
+        book = detect_book(Path(pdf_path).name)
+        
+        if book:
+            console.print(
+                f"  [green]✓ Detected:[/green] {book.short_title} "
+                f"[dim]({book.legal_status})[/dim]"
+            )
+            # Enrich document metadata
+            doc.metadata.update({
+                "book_key": book.key,
+                "short_title": book.short_title,
+                "authors": ", ".join(book.authors[:3]),
+                "edition": book.edition,
+                "year": book.year,
+                "publisher": book.publisher,
+                "publisher_short": book.publisher_short,
+                "legal_status": book.legal_status,
+                "citation": book.citation_format,
+                "subject_tags": ", ".join(book.subject_tags),
+                "species_tags": ", ".join(book.species_tags),
+                "content_type": book.content_type,
+                "isbn": book.isbn,
+            })
+            # Use canonical title from registry
+            doc.title = book.title
+        else:
+            console.print(
+                f"  [yellow]⚠ Unknown book:[/yellow] {Path(pdf_path).name} "
+                f"[dim](add to book_registry.py for full metadata)[/dim]"
+            )
+        
+        return doc

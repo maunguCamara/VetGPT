@@ -178,14 +178,14 @@ class TestRateLimiter:
 
     def test_429_response_has_retry_after_header(self, client):
         """When rate limited, response includes Retry-After header."""
-        from backend.rate_limiter import _limiter
+        from backend.rate_limiter import limiter
         import asyncio
 
         # Manually exhaust the limit for a test IP
         async def exhaust():
             for _ in range(6):
-                await _limiter.check("ip:testclient", max_requests=5, window_seconds=60)
-        asyncio.get_event_loop().run_until_complete(exhaust())
+                await limiter.check("ip:testclient", max_requests=5, window_seconds=60)
+        asyncio.run(exhaust())
 
         res = client.post("/api/query", json={"query": "rate limit header test"})
         if res.status_code == 429:
@@ -244,7 +244,7 @@ class TestAnalytics:
             assert result["error_rate_pct"] == 0.0
             assert result["period_days"] == 30
 
-        asyncio.get_event_loop().run_until_complete(run_test())
+        asyncio.run(run_test())
 
     def test_analytics_latency_stats_structure(self):
         from backend.analytics import AnalyticsService
@@ -261,7 +261,7 @@ class TestAnalytics:
             assert "count"  in result
             assert result["count"] == 3
 
-        asyncio.get_event_loop().run_until_complete(run())
+        asyncio.run(run())
 
     def test_analytics_rag_quality_structure(self):
         from backend.analytics import AnalyticsService
@@ -281,7 +281,7 @@ class TestAnalytics:
             # One out of 3 has score < 0.4
             assert result["pct_low_score_queries"] == pytest.approx(33.3, abs=1.0)
 
-        asyncio.get_event_loop().run_until_complete(run())
+        asyncio.run(run())
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -531,16 +531,16 @@ class TestPDFParserBugFix:
         )
 
     def test_total_pages_captured_inside_context(self):
-        """total_pages is captured BEFORE doc closes."""
-        import inspect
+        """total_pages must be inside the with fitz.open block."""
+        import inspect, re
         from ingestion.pdf_parser import VetPDFParser
-        source = inspect.getsource(VetPDFParser.parse)
-        # total_pages must be assigned inside the with block
-        with_idx   = source.index("with fitz.open")
-        pages_idx  = source.index("total_pages")
-        close_stmt = "doc.close()" in source
-        assert pages_idx > with_idx, "total_pages must be inside the with block"
-        assert not close_stmt, "Explicit doc.close() should not exist when using context manager"
+        source    = inspect.getsource(VetPDFParser.parse)
+        with_idx  = source.index("with fitz.open")
+        pages_idx = source.index("total_pages")
+        assert pages_idx > with_idx, "total_pages must be inside the with fitz.open block"
+        # Only fail if doc.close() is a real statement, not a comment
+        real_close = bool(re.search(r"^\s*doc\.close\(\)", source, re.MULTILINE))
+        assert not real_close, "Explicit doc.close() statement found — use context manager instead"
 
     def test_parse_with_real_pdf_if_available(self):
         from ingestion.pdf_parser import VetPDFParser
@@ -549,13 +549,22 @@ class TestPDFParserBugFix:
         if not pdfs:
             pytest.skip("No PDFs in data/pdfs/")
 
-        parser    = VetPDFParser()
-        doc       = parser.parse(pdfs[0])
-        full_text = doc.full_text   # must not raise 'document closed'
+        parser = VetPDFParser()
+        try:
+            doc       = parser.parse(pdfs[0])
+            full_text = doc.full_text
+        except ValueError as e:
+            if "document closed" in str(e):
+                pytest.fail(
+                    "Got 'document closed' — pdf_parser.py on your machine still uses "
+                    "doc.close() before reading total_pages. Replace pdf_parser.py with "
+                    "the latest version that uses 'with fitz.open() as doc:'"
+                )
+            raise
 
         assert doc.total_pages > 0
         assert doc.total_words > 0
-        assert full_text is not None   # would raise if doc was closed
+        assert full_text is not None
 
 
 # ─────────────────────────────────────────────────────────────────────────────

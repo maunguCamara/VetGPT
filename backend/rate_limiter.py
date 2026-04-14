@@ -97,7 +97,7 @@ class InMemoryRateLimiter:
 
 
 # Singleton
-limiter = InMemoryRateLimiter()
+_limiter = InMemoryRateLimiter()
 
 
 # ─── Redis store (production) ─────────────────────────────────────────────────
@@ -224,12 +224,38 @@ def get_rate_limiter_dependency(is_vision: bool = False):
 standard_rate_limit = get_rate_limiter_dependency(is_vision=False)
 vision_rate_limit   = get_rate_limiter_dependency(is_vision=True)
 
+# ─── Public aliases ────────────────────────────────────────────────────────────
+# These names are imported by routes.py and the test suite.
+
+# Public reference to the singleton limiter
+limiter = _limiter
+
+
+def get_rate_limit_for_user(tier: str) -> dict:
+    """
+    Return the rate limit config for a given tier.
+    Used by routes.py and tests to inspect limits without triggering them.
+
+    Returns:
+        dict with keys: requests (int), window (int in seconds)
+    """
+    return RATE_LIMITS.get(tier, RATE_LIMITS["free"])
+
+
+def get_vision_rate_limit_for_user(tier: str) -> dict:
+    """Return vision-specific rate limit config for a given tier."""
+    return VISION_RATE_LIMITS.get(tier, VISION_RATE_LIMITS["free"])
+
+
 __all__ = [
     "InMemoryRateLimiter",
+    "RedisRateLimiter",
     "RATE_LIMITS",
     "VISION_RATE_LIMITS",
     "limiter",
     "standard_rate_limit",
     "vision_rate_limit",
-    "rate_limit_dependency",
+    "get_rate_limiter_dependency",
+    "get_rate_limit_for_user",
+    "get_vision_rate_limit_for_user",
 ]

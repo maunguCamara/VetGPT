@@ -173,7 +173,7 @@ query_router = APIRouter(prefix="/api/query", tags=["query"])
 
 
 @query_router.post("", response_model=QueryResponse)
-#limiter.limit("20/minute")  I dont kno what this line does I will check but it brings rate limit import erro
+#limiter.limit("20/minute")  I dont kno what this line     does I will check but it brings rate limit import erro
 async def query(
     request: Request,
     query_req: QueryRequest,

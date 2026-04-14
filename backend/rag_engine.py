@@ -67,17 +67,33 @@ class RAGResponse:
         "Always verify with a licensed veterinarian before clinical decisions."
     )
 
+    @property
+    def formatted_references(self) -> str:
+        """
+        Numbered reference list for display, e.g.:
+        [1] Merck Vet Manual, p.123
+        [2] Plumb's, p.456
+        """
+        if not self.citations:
+            return ""
+        lines = []
+        for i, c in enumerate(self.citations, 1):
+            lines.append(f"[{i}] {c.document_title}, p.{c.page_number}")
+        return "\n".join(lines)
+
     def to_dict(self) -> dict:
         return {
             "query": self.query,
             "answer": self.answer,
             "citations": [c.to_dict() for c in self.citations],
+            "formatted_references": self.formatted_references,
             "chunks_retrieved": self.chunks_retrieved,
             "top_score": self.top_score,
             "llm_model": self.llm_model,
             "latency_ms": self.latency_ms,
             "disclaimer": self.disclaimer,
         }
+
 
 
 # ──────────────────────────────────────────────

@@ -31,6 +31,16 @@ from ingestion import VetVectorStore
 
 load_dotenv()
 console = Console()
+eclinpath_cmd = '''
+@cli.command()
+@click.option("--cache", is_flag=True, help="Load from cache")
+def eclinpath(cache):
+    """Scrape eClinPath (Cornell University) clinical pathology content."""
+    pipeline = ScrapingPipeline(use_cache=cache)
+    pipeline.run_eclinpath_only()
+
+'''
+
 
 
 @click.group()
@@ -83,7 +93,7 @@ def fao(cache):
     pipeline.run_fao_only()
 
 
-@cli.command("from-cache")
+eclinpath_cmd + '@cli.command("from-cache")'
 def from_cache():
     """Re-index all sources from local cache (no network)."""
     pipeline = ScrapingPipeline(use_cache=True)
@@ -105,11 +115,12 @@ def test_query(query_text, n, source):
         pass  # handled via source prefix in query
 
     console.print(f"\n[bold]Query:[/bold] {query_text}\n")
-    results = store.query(query_text, n_results=n)
+    results = store.query(query_text, n_results=n, filter_by_source=source)
 
     # Filter by source if specified
-    if source:
-        results = [r for r in results if r.get("source_file", "").startswith(source)]
+    if not results:
+        console.print("[yellow]No results found.Try a broader query or check if the database is indexed.[/yellow]")
+        return
 
     for i, r in enumerate(results, 1):
         console.print(

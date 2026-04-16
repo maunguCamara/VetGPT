@@ -115,21 +115,25 @@ interface AppState {
   hasLocalModel: boolean;
   filterSpecies: string | null;
   filterSource: string | null;
+  preferredLanguage: string | null;  // ISO-639-1 or null = auto-detect
 
   setOnline: (v: boolean) => void;
   setHasLocalModel: (v: boolean) => void;
   setFilterSpecies: (v: string | null) => void;
   setFilterSource: (v: string | null) => void;
+  setPreferredLanguage: (v: string | null) => void;
 }
 
 export const useAppStore = create<AppState>((set) => ({
   isOnline: true,
-  hasLocalModel: false,          // Phase 2: true when Qwen downloaded
+  hasLocalModel: false,
   filterSpecies: null,
   filterSource: null,
+  preferredLanguage: null,   // null = auto-detect from query text
 
   setOnline: (isOnline) => set({ isOnline }),
   setHasLocalModel: (hasLocalModel) => set({ hasLocalModel }),
   setFilterSpecies: (filterSpecies) => set({ filterSpecies }),
   setFilterSource: (filterSource) => set({ filterSource }),
+  setPreferredLanguage: (preferredLanguage) => set({ preferredLanguage }),
 }));

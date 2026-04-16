@@ -9,10 +9,13 @@ import { StatusBar } from 'expo-status-bar';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import * as SplashScreen from 'expo-splash-screen';
 import * as Network from 'expo-network';
+import * as FileSystem from 'expo-file-system';
 import { useAuthStore, useAppStore } from '../store';
-import { getStoredToken, getMe } from './lib/api';
+import { getStoredToken, getMe, BASE_URL } from './lib/api';
 import { offlineRouter } from './lib/offlineRouter';
 import { Colors } from '../constants/theme';
+import { localVectorStore } from './lib/localVectorStore';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -44,15 +47,48 @@ export default function RootLayout() {
 
   // ── Network status watcher ────────────────────────────────────────────────
   useEffect(() => {
-    let interval: ReturnType<typeof setInterval>;
-
+    
+    let wasOffline = false;
     async function checkNetwork() {
       const state = await Network.getNetworkStateAsync();
-      setOnline(!!(state.isConnected && state.isInternetReachable));
-    }
+      const online = !!(state.isConnected && state.isInternetReachable);
+      setOnline(online);
 
+      //Trigger delta sync when coming back online after being offline
+      if (online && wasOffline) {
+        triggerDeltaSync();
+      }
+      wasOffline = !online;
+
+    }
+    
+    async function triggerDeltaSync() {
+      try {
+        const SYNC_KEY = 'vetgpt_last_sync';
+        const lastSync = await AsyncStorage.getItem(SYNC_KEY) ?? '';
+        const token = await getStoredToken();
+        if (!token) return;
+        
+        const url = `${BASE_URL}/api/sync/delta?since=${encodeURIComponent(lastSync)}&limit=500`;
+        const res = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
+        if (!res.ok) {
+          const data = await res.json();
+          if (data.chunks && data.chunks.length > 0) {
+            //Write Delta chunks to local vector store
+            const JSONL = data.chunks.map((c: any) => JSON.stringify(c)).join('\n');
+            const tmpPath = FileSystem.cacheDirectory + 'sync_delta.jsonl';
+            await FileSystem.writeAsStringAsync(tmpPath, JSONL);
+            const added = await localVectorStore.syncDelta(tmpPath);
+            console.log('[Sync] Added ${added} new chunks from delta sync');
+          }
+          await AsyncStorage.setItem(SYNC_KEY, data.synced_at ?? new Date().toISOString());
+        }
+      } catch (err) {
+        console.error('[Sync]Delta sync failed:', err);
+      }
+    }
     checkNetwork();
-    interval = setInterval(checkNetwork, 10000);   // check every 10s
+    const interval = setInterval(checkNetwork, 10000);   // check every 10s
     return () => clearInterval(interval);
   }, []);
 

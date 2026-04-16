@@ -56,8 +56,18 @@ export class LlamaCppClient {
    */
   async startServer(modelPath: string): Promise<void> {
     try {
-      // Dynamic import — module only exists after `expo prebuild`
-      const { LlamaContext } = await import('llama.rn');
+      // Module only exists after `expo prebuild`
+      // @ts-ignore - llama.rn is conditionally available after prebuild
+      let LlamaContext: any;
+      try {
+        // // Dynamic import — module only exists after `expo prebuild`
+      //const { LlamaContext } = await import('llama.rn');
+        // @ts-ignore
+        LlamaContext = require('llama.rn').LlamaContext;
+      } catch {
+        // Fallback for environments where llama.rn is not available
+        console.warn('[llama.cpp] llama.rn not available, using HTTP server mode');
+      }
 
       // llama.rn manages the context internally
       // For server mode on Android we use the HTTP server interface
@@ -187,9 +197,12 @@ export class MLCClient {
    * Load the MLC-compiled Qwen2.5-3B model.
    * Must be called once before querying.
    */
+
+  
   async loadModel(modelPath: string): Promise<void> {
     try {
-      const { MLCEngine } = await import('react-native-mlc-llm');
+      // @ts-expect-error react-native-mlc-llm is a native module without full type declarations
+      const { MLCEngine } = await import('react-native-mlc-llm' as any);
 
       this._engine = await MLCEngine.create({
         model: modelPath,

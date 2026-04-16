@@ -46,7 +46,7 @@ export interface QueryResponse {
   query: string;
   answer: string;
   citations: Citation[];
-  formatted_references: string[];
+  formatted_references: string;  // "[1] WikiVet — p.12\n[2] Merck — p.304"
   chunks_retrieved: number;
   top_score: number;
   llm_model: string;
@@ -86,62 +86,6 @@ export async function isOnline(): Promise<boolean> {
   } catch {
     return false;
   }
-}
-
-// Billing API
-
-export interface CheckoutResult {
-  checkout_url: string;
-  session_id: string;
-}
-
-export interface SubscriptionStatus {
-  tier: string;
-  has_subscription: boolean;
-  status: string;
-  current_period_end: string | null;
-}
-
-export async function createCheckout(tier: 'premium' | 'clinic'): 
-Promise<CheckoutResult> {
-  const token = await getStoredToken();
-  const res = await fetch(`${BASE_URL}/api/billing/checkout`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
-    },
-    body: JSON.stringify({ tier }),
-  });
-
-  if (!res.ok) {
-    const data = await res.json().catch(() => ({}));
-    throw new Error((data as any).detail ?? 'Checkout failed (${res.status})');   
-  }
-  return res.json();
-}
-
-export async function getSubscriptionStatus(): Promise<SubscriptionStatus> {
-  const token = await getStoredToken();
-  const res = await fetch(`${BASE_URL}/api/billing/subscription`, {
-    headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) },
-  });
-
-  if (!res.ok)  throw new Error('Failed to fetch subscription status'); 
-    return res.json();
-  
-}
-
-export async function openBillingPortal(): Promise<string> {
-  const token = await getStoredToken();
-  const res = await fetch(`${BASE_URL}/api/billing/portal`, {
-    method: 'POST',
-    headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) },
-  });
-
-  if (!res.ok) throw new Error('Failed to open billing portal');
-  const data= await res.json();
-  return data.portal_url;
 }
 
 // ─── API Error ────────────────────────────────────────────────────────────────
@@ -361,4 +305,55 @@ export async function checkHealth(): Promise<boolean> {
   } catch {
     return false;
   }
+}
+
+// ─── Billing API ──────────────────────────────────────────────────────────────
+
+export interface CheckoutResult {
+  checkout_url: string;
+  session_id: string;
+}
+
+export interface SubscriptionStatus {
+  tier: string;
+  has_subscription: boolean;
+  status: string;
+  current_period_end: string | null;
+}
+
+export async function createCheckout(tier: 'premium' | 'clinic'): Promise<CheckoutResult> {
+  const token = await getStoredToken();
+  const res = await fetch(`${BASE_URL}/api/billing/checkout`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+    body: JSON.stringify({ tier }),
+  });
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error((data as any).detail ?? `Checkout failed (${res.status})`);
+  }
+  return res.json();
+}
+
+export async function getSubscriptionStatus(): Promise<SubscriptionStatus> {
+  const token = await getStoredToken();
+  const res = await fetch(`${BASE_URL}/api/billing/subscription`, {
+    headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+  });
+  if (!res.ok) throw new Error('Failed to fetch subscription status');
+  return res.json();
+}
+
+export async function openBillingPortal(): Promise<string> {
+  const token = await getStoredToken();
+  const res = await fetch(`${BASE_URL}/api/billing/portal`, {
+    method: 'POST',
+    headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+  });
+  if (!res.ok) throw new Error('Failed to open billing portal');
+  const data = await res.json();
+  return data.portal_url;
 }

@@ -24,10 +24,15 @@ from slowapi.middleware import SlowAPIMiddleware
 from .config import get_settings
 from .database import init_db
 from .rag_engine import VetRAGEngine
+
 from .routes import auth_router, query_router, health_router, set_rag_engine
 from .vision_routes import vision_router
 from .admin_routes import admin_router
 from .upload_routes import upload_router
+from .billing import billing_router
+from .finetune import finetune_router
+from .sync_routes import sync_router
+
 
 settings = get_settings()
 
@@ -139,12 +144,16 @@ async def global_exception_handler(request: Request, exc: Exception):
 
 # ── Routers ───────────────────────────────────────────────────────────────────
 
-app.include_router(auth_router)
-app.include_router(query_router)
-app.include_router(health_router)
-app.include_router(vision_router)
-app.include_router(admin_router)
-app.include_router(upload_router)
+app.include_router(auth_router) #/api/auth/*
+app.include_router(query_router) #/api/query
+app.include_router(health_router) #/api/health
+app.include_router(vision_router) #/api/vision
+app.include_router(admin_router) #/api/admin
+app.include_router(upload_router) #/api/upload
+app.include_router(billing_router) #/api/billing
+app.include_router(finetune_router) #/api/finetune
+app.include_router(sync_router) #/api/sync
+
 
 
 # ── Root ──────────────────────────────────────────────────────────────────────
@@ -156,4 +165,13 @@ async def root():
         "version": settings.app_version,
         "docs":    "/docs",
         "health":  "/api/health",
+        "routes":   {
+            "auth": "/api/auth",
+            "query": "/api/query",
+            "vision": "/api/vision (premium)",
+            "admin": "/api/admin (admin only)",
+            "billing": "/api/billing",
+            "manuals": "/api/manuals",
+            "sync": "/api/sync",
+        },
     }

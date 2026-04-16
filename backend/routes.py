@@ -28,11 +28,6 @@ from fastapi.security import OAuth2PasswordRequestForm
 from pydantic import BaseModel, Field
 from sqlalchemy import select, desc
 from sqlalchemy.ext.asyncio import AsyncSession
-from slowapi import Limiter
-from slowapi.util import get_remote_address
-from .rate_limiter import limiter
-from .database import User, QueryLog, QueryStatus, get_db, AnalyticsEvent
-
 
 from .auth import (
     UserCreate, UserOut, Token,
@@ -62,29 +57,6 @@ def get_rag_engine() -> VetRAGEngine:
         raise HTTPException(status_code=503, detail="RAG engine not initialised")
     return _rag_engine
 
-def get_rate_limit(user: User | None) -> str:
-    """Return rate limit string based on user tier."""
-    if not user:
-        return "5/minute"  # Unauthenticated
-    if user.tier.value == "free":
-        return "20/minute"
-    elif user.tier.value in ["premium", "clinic"]:
-        return "100/minute"
-    return "20/minute"
-
-def get_rate_limit_for_user(tier: str) -> dict:
-    """
-    Return the rate limit config for a given user tier.
-    Used for routes.py and tests to inspect limits without triggering them
-
-    Returns:
-    dict with keys: requests (int), window (int in seconds)
-    """
-    return RATE_LIMITS.get(tier, RATE_LIMITS["free"])
-
-def get_vision_rate_limit_for_user(tier: str) -> dict:
-    """ Return vision-specific rate limit config for a given user tier."""
-    return VISION_RATE_LIMITS.get(tier, VISION_RATE_LIMITS["free"])
 
 # ──────────────────────────────────────────────
 # Request / Response schemas
@@ -94,7 +66,14 @@ class QueryRequest(BaseModel):
     query: str = Field(..., min_length=3, max_length=2000)
     top_k: int = Field(default=5, ge=1, le=20)
     filter_species: str | None = Field(default=None, description="e.g. canine, equine, bovine")
-    filter_source: str | None = Field(default=None, description="e.g. wikivet, plumbs, pubmed")
+    filter_source:  str | None = Field(default=None, description="e.g. wikivet, plumbs, pubmed")
+    language:       str | None = Field(
+        default=None,
+        description=(
+            "Force response language (ISO-639-1: en, sw, fr, ar, pt, es, zh). "
+            "Auto-detected from query text if not specified."
+        ),
+    )
     stream: bool = False
 
 
@@ -102,7 +81,7 @@ class QueryResponse(BaseModel):
     query: str
     answer: str
     citations: list[dict]
-    formatted_references: list[str]
+    formatted_references: str   # numbered ref list: [1] Title — p.X
     chunks_retrieved: int
     top_score: float
     llm_model: str
@@ -174,21 +153,21 @@ query_router = APIRouter(prefix="/api/query", tags=["query"])
 
 
 @query_router.post("", response_model=QueryResponse)
-#limiter.limit("20/minute")  I dont kno what this line     does I will check but it brings rate limit import erro
 async def query(
-    request: Request,
-    query_req: QueryRequest,
+    request: QueryRequest,
     db: AsyncSession = Depends(get_db),
     user: User | None = Depends(get_current_user_optional),
     engine: VetRAGEngine = Depends(get_rag_engine),
 ):
-    # Get rate limit based on user tier
-    user_tier = user.tier.value if user else None
-    limit_str = get_rate_limit_for_user(user_tier)
-  
-    request.state.user = user  # for rate limiter
+    """
+    Main RAG query endpoint.
+
+    - Free users: 20 queries/min, top_k capped at 5
+    - Premium users: 100 queries/min, top_k up to 20
+    - Unauthenticated: 5 queries/min, top_k capped at 3 (demo mode)
+    """
     # Cap top_k by tier
-    top_k = query_req.top_k
+    top_k = request.top_k
     if not user:
         top_k = min(top_k, 3)
     elif user.tier.value == "free":
@@ -196,14 +175,14 @@ async def query(
 
     try:
         rag_response = await engine.query(
-            query_text=query_req.query,
+            query_text=request.query,
             top_k=top_k,
-            filter_species=query_req.filter_species,
-            filter_source=query_req.filter_source,
+            filter_species=request.filter_species,
+            filter_source=request.filter_source,
         )
     except Exception as e:
         await _log_query(
-            db, user, query_req.query, "", [], 0, 0.0, "", 0,
+            db, user, request.query, "", [], 0, 0.0, "", 0,
             QueryStatus.ERROR, str(e)
         )
         raise HTTPException(status_code=500, detail=f"Query failed: {e}")
@@ -212,7 +191,7 @@ async def query(
     await _log_query(
         db=db,
         user=user,
-        query=query_req.query,
+        query=request.query,
         answer=rag_response.answer,
         citations=[c.to_dict() for c in rag_response.citations],
         chunks=rag_response.chunks_retrieved,
@@ -369,39 +348,3 @@ async def _log_query(
         db.add(log)
     except Exception:
         pass  # never let logging break a query response
-
-@router.post("/api/analytics")
-async def track_analytics(
-    data: dict,
-    user: User = Depends(get_current_user_optional),
-    db: AsyncSession = Depends(get_db),
-):
-    """Track analytics events like query latency, model performance"""
-    
-    events = data.get('events', [])
-    
-    for event in events:
-        # Create analytics record
-        analytics = AnalyticsEvent(
-            user_id=user.id if user else None,
-            event_type=event.get('event'),
-            properties=event.get('properties', {}),
-            created_at=datetime.utcnow()
-        )
-        db.add(analytics)
-    
-    await db.commit()
-    return {"status": "ok", "events_received": len(events)}
-
-__all__ = [
-    "InMemoryRateLimiter",
-    "RedisRateLimiter",
-    "RATE_LIMITS",
-    "VISION_RATE_LIMITS",
-    "limiter",
-    "standard_rate_limit",
-    "vision_rate_limit",
-    "get_rate_limit_for_user",
-    "get_vision_rate_limit_for_user",
-    "get_rate_limit_dependency",
-]

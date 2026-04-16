@@ -1,0 +1,89 @@
+version: "3.9"
+
+# ── VetGPT Docker Compose ─────────────────────────────────────────────────────
+#
+# Dev:   docker compose up
+# Prod:  docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+#
+# Services:
+#   api      — FastAPI backend
+#   redis    — Rate limiting + caching (production)
+#   caddy    — Reverse proxy with auto-HTTPS (production)
+
+services:
+
+  # ── FastAPI Backend ──────────────────────────────────────────────────────────
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: runtime
+    container_name: vetgpt_api
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=sqlite+aiosqlite:///./data/vetgpt.db
+      - CHROMA_DB_PATH=./data/chroma_db
+      - EMBEDDING_PROVIDER=${EMBEDDING_PROVIDER:-local}
+      - LLM_PROVIDER=${LLM_PROVIDER:-anthropic}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - GOOGLE_AI_API_KEY=${GOOGLE_AI_API_KEY}
+      - SECRET_KEY=${SECRET_KEY}
+      - STRIPE_SECRET_KEY=${STRIPE_SECRET_KEY}
+      - STRIPE_WEBHOOK_SECRET=${STRIPE_WEBHOOK_SECRET}
+      - STRIPE_PRICE_PREMIUM_MONTHLY=${STRIPE_PRICE_PREMIUM_MONTHLY}
+      - STRIPE_PRICE_CLINIC_MONTHLY=${STRIPE_PRICE_CLINIC_MONTHLY}
+      - ADMIN_EMAILS=${ADMIN_EMAILS}
+      - ENVIRONMENT=production
+      - DEBUG=false
+    volumes:
+      - vetgpt_data:/app/data
+    depends_on:
+      - redis
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # ── Redis (rate limiting + session cache) ────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    container_name: vetgpt_redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  # ── Caddy (reverse proxy + auto HTTPS) ───────────────────────────────────────
+  caddy:
+    image: caddy:2-alpine
+    container_name: vetgpt_caddy
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - api
+    profiles:
+      - production   # only runs with: docker compose --profile production up
+
+
+volumes:
+  vetgpt_data:
+  redis_data:
+  caddy_data:
+  caddy_config:

@@ -1,13 +1,10 @@
 """
 vetgpt/backend/main.py
 
-FastAPI application entry point.
+FastAPI application entry point — all routers registered.
 
-Run dev:
-    uvicorn backend.main:app --reload --port 8000
-
-Run prod:
-    uvicorn backend.main:app --host 0.0.0.0 --port 8000 --workers 4
+Run dev:   uvicorn backend.main:app --reload --port 8000
+Run prod:  uvicorn backend.main:app --host 0.0.0.0 --port 8000 --workers 4
 """
 
 import time
@@ -25,19 +22,19 @@ from .config import get_settings
 from .database import init_db
 from .rag_engine import VetRAGEngine
 
-from .routes import auth_router, query_router, health_router, set_rag_engine
+# Route groups
+from .routes        import auth_router, query_router, health_router, set_rag_engine
 from .vision_routes import vision_router
-from .admin_routes import admin_router
+from .admin_routes  import admin_router
 from .upload_routes import upload_router
-from .billing import billing_router
-from .finetune import finetune_router
-from .sync_routes import sync_router
-
+from .billing       import billing_router
+from .finetune      import finetune_router
+from .sync_routes   import sync_router
 
 settings = get_settings()
 
 
-# ── Rate limiter key: user_id from JWT if present, else IP ───────────────────
+# ── Rate limiter key ──────────────────────────────────────────────────────────
 
 def rate_limit_key(request: Request) -> str:
     """Authenticated → key by user_id. Anonymous → key by IP."""
@@ -57,11 +54,8 @@ def rate_limit_key(request: Request) -> str:
     return f"ip:{get_remote_address(request)}"
 
 
-# ── slowapi Limiter (NOT our InMemoryRateLimiter) ────────────────────────────
-# slowapi's Limiter handles the @limiter.limit() decorator pattern.
-# Our InMemoryRateLimiter handles the Depends() pattern in routes.
-# They are separate — do not mix them.
-
+# slowapi Limiter — this is NOT InMemoryRateLimiter
+# app.state.limiter must be slowapi's Limiter for SlowAPIMiddleware to work
 limiter = Limiter(key_func=rate_limit_key)
 
 
@@ -75,7 +69,8 @@ async def lifespan(app: FastAPI):
     engine = VetRAGEngine()
     set_rag_engine(engine)
     h = engine.health()
-    print(f"✓ RAG engine ready — {h['chroma_chunks']:,} chunks, LLM: {h['llm_provider']}")
+    print(f"✓ RAG engine — {h['chroma_chunks']:,} chunks | LLM: {h['llm_provider']}")
+    print("✓ All systems ready")
     yield
     print("VetGPT API shutting down...")
 
@@ -83,22 +78,21 @@ async def lifespan(app: FastAPI):
 # ── App ───────────────────────────────────────────────────────────────────────
 
 app = FastAPI(
-    title=settings.app_name,
-    version=settings.app_version,
-    description=(
-        "VetGPT — AI-powered veterinary reference tool. "
-        "RAG over WikiVet, PubMed, FAO, eClinPath and uploaded vet manuals."
+    title       = settings.app_name,
+    version     = settings.app_version,
+    description = (
+        "VetGPT — AI veterinary reference. "
+        "RAG over WikiVet, PubMed, FAO, eClinPath and uploaded vet manuals. "
+        "Premium: X-ray, lesion, parasite, cytology AI analysis."
     ),
-    docs_url="/docs",
-    redoc_url="/redoc",
-    lifespan=lifespan,
+    docs_url    = "/docs",
+    redoc_url   = "/redoc",
+    lifespan    = lifespan,
 )
 
-# Attach slowapi's Limiter to app state (required by slowapi middleware)
+# IMPORTANT: app.state.limiter must be slowapi's Limiter, not InMemoryRateLimiter
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
-
-# Add slowapi middleware BEFORE CORS so rate limits are checked first
 app.add_middleware(SlowAPIMiddleware)
 
 
@@ -118,7 +112,7 @@ app.add_middleware(
 )
 
 
-# ── Request timing middleware ─────────────────────────────────────────────────
+# ── Request timing ────────────────────────────────────────────────────────────
 
 @app.middleware("http")
 async def add_timing_header(request: Request, call_next):
@@ -136,7 +130,7 @@ async def global_exception_handler(request: Request, exc: Exception):
     return JSONResponse(
         status_code=500,
         content={
-            "error": "Internal server error",
+            "error":  "Internal server error",
             "detail": str(exc) if settings.debug else "Something went wrong",
         },
     )
@@ -144,16 +138,26 @@ async def global_exception_handler(request: Request, exc: Exception):
 
 # ── Routers ───────────────────────────────────────────────────────────────────
 
-app.include_router(auth_router) #/api/auth/*
-app.include_router(query_router) #/api/query
-app.include_router(health_router) #/api/health
-app.include_router(vision_router) #/api/vision
-app.include_router(admin_router) #/api/admin
-app.include_router(upload_router) #/api/upload
-app.include_router(billing_router) #/api/billing
-app.include_router(finetune_router) #/api/finetune
-app.include_router(sync_router) #/api/sync
+# Core
+app.include_router(auth_router)        # /api/auth/*
+app.include_router(query_router)       # /api/query/*
+app.include_router(health_router)      # /api/health/*
 
+# Premium vision
+app.include_router(vision_router)      # /api/vision/*
+
+# Admin + analytics + fine-tuning
+app.include_router(admin_router)       # /api/admin/*
+app.include_router(finetune_router)    # /api/admin/finetune/*
+
+# Billing (Stripe)
+app.include_router(billing_router)     # /api/billing/*
+
+# PDF upload
+app.include_router(upload_router)      # /api/manuals/*
+
+# Mobile offline sync
+app.include_router(sync_router)        # /api/sync/*
 
 
 # ── Root ──────────────────────────────────────────────────────────────────────
@@ -165,13 +169,13 @@ async def root():
         "version": settings.app_version,
         "docs":    "/docs",
         "health":  "/api/health",
-        "routes":   {
-            "auth": "/api/auth",
-            "query": "/api/query",
-            "vision": "/api/vision (premium)",
-            "admin": "/api/admin (admin only)",
+        "routes": {
+            "auth":    "/api/auth",
+            "query":   "/api/query",
+            "vision":  "/api/vision  (premium)",
             "billing": "/api/billing",
+            "sync":    "/api/sync",
             "manuals": "/api/manuals",
-            "sync": "/api/sync",
+            "admin":   "/api/admin   (admin only)",
         },
     }

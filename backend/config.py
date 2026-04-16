@@ -49,6 +49,15 @@ class Settings(BaseSettings):
 
     admin_emails: str = "camara@admin.com"  # comma-separated list of admin emails
 
+    #Stripe Billing
+    stripe_secret_key: str = ""
+    stripe_webhook_secret: str = ""
+    stripe_price_premium_monthly: str = ""
+    stripe_price_clinic_monthly: str = ""
+    stripe_success_url: str = "vetgpt://billing/success"
+    stripe_cancel_url: str = "vetgpt://billing/cancel"
+    stripe_portal_return_url: str = "vetgpt://profile"
+
     class Config:
         env_file = ".env"
         env_file_encoding = "utf-8"

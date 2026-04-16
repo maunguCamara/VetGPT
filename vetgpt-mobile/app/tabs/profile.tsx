@@ -9,9 +9,9 @@ import {
 } from 'react-native';
 import { useState } from 'react';
 import { router } from 'expo-router';
-import { login, logout } from '../lib/api';
-import { Colors, Spacing, Radius, Typography, Shadow } from '../constants/theme';
-import { useAuthStore, useAppStore } from '../store';
+import { logout } from '../../lib/api';
+import { Colors, Spacing, Radius, Typography, Shadow } from '../../constants/theme';
+import { LANGUAGE_LABELS, SupportedLanguage } from '../../lib/api';
 
 function TierBadge({ tier }: { tier: string }) {
   const isPremium = tier === 'premium' || tier === 'clinic';
@@ -44,15 +44,12 @@ function SettingRow({
 }
 
 export default function ProfileScreen() {
-  const { user, isAuthenticated, logout, logout: storeLogout } = useAuthStore();
-  const { isOnline, filterSpecies, setFilterSpecies } = useAppStore();
+  const { user, isAuthenticated, logout: storeLogout } = useAuthStore();
+  const { isOnline, filterSpecies, setFilterSpecies, preferredLanguage, setPreferredLanguage } = useAppStore();
   const [streamingEnabled, setStreamingEnabled] = useState(true);
   const [citationsEnabled, setCitationsEnabled] = useState(true);
-  const [hasLocalModel, setHasLocalModel] = useState(false);
-  const showSignOut = isAuthenticated && user !== null;
 
   const isPremium = user?.tier === 'premium' || user?.tier === 'clinic';
-  const speciesOptions = ['None', 'Canine', 'Feline', 'Equine', 'Bovine'];
 
   async function handleLogout() {
     Alert.alert('Sign out', 'Are you sure you want to sign out?', [
@@ -63,7 +60,7 @@ export default function ProfileScreen() {
         onPress: async () => {
           await logout();
           storeLogout();
-          router.replace('/auth/signin');
+          router.replace('/(auth)/login');
         },
       },
     ]);
@@ -104,7 +101,7 @@ export default function ProfileScreen() {
             <Text style={styles.upgradeSub}>
               Unlock X-ray analysis, image recognition, advanced OCR and more.
             </Text>
-            <TouchableOpacity style={styles.upgradeBtn}onPress={() => router.push('/modals/plans')}>
+            <TouchableOpacity style={styles.upgradeBtn}>
               <Text style={styles.upgradeBtnText}>View plans →</Text>
             </TouchableOpacity>
           </View>
@@ -132,19 +129,39 @@ export default function ProfileScreen() {
         {/* Species filter */}
         <Text style={styles.sectionLabel}>Default species filter</Text>
         <View style={styles.speciesGrid}>
-          {speciesOptions.map((s) => {
-            const isActive = filterSpecies === s.toLowerCase() || (s === 'None' && !filterSpecies);
+          {['None', 'Canine', 'Feline', 'Bovine', 'Equine', 'Mixed'].map((s) => (
+            <TouchableOpacity
+              key={s}
+              style={[
+                styles.speciesChip,
+                (filterSpecies === s || (s === 'None' && !filterSpecies)) && styles.speciesChipActive,
+              ]}
+              onPress={() => setFilterSpecies(s === 'None' ? null : s.toLowerCase())}
+            >
+              <Text style={[
+                styles.speciesChipText,
+                (filterSpecies === s || (s === 'None' && !filterSpecies)) && styles.speciesChipTextActive,
+              ]}>
+                {s}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+
+        {/* Language preference */}
+        <Text style={styles.sectionLabel}>Response language</Text>
+        <View style={styles.speciesGrid}>
+          {([null, ...Object.keys(LANGUAGE_LABELS)] as (SupportedLanguage | null)[]).map((lang) => {
+            const isActive = preferredLanguage === lang;
+            const label = lang === null ? 'Auto' : LANGUAGE_LABELS[lang];
             return (
               <TouchableOpacity
-                key={s}
+                key={lang ?? 'auto'}
                 style={[styles.speciesChip, isActive && styles.speciesChipActive]}
-                onPress={() => setFilterSpecies(s === 'None' ? '' : s.toLowerCase())}
+                onPress={() => setPreferredLanguage(lang)}
               >
-                <Text style={[
-                  styles.speciesChipText,
-                  isActive && styles.speciesChipTextActive,
-                ]}>
-                  {s}
+                <Text style={[styles.speciesChipText, isActive && styles.speciesChipTextActive]}>
+                  {label}
                 </Text>
               </TouchableOpacity>
             );
@@ -161,27 +178,28 @@ export default function ProfileScreen() {
           </Text>
           <TouchableOpacity style={styles.downloadBtn} onPress={() => router.push('/download-model')}>
             <Text style={styles.downloadBtnText}>
-              {hasLocalModel ? 'Model ready — tap to manage' : 'Download offline model (1.93 GB)'}
+              {hasLocalModel ? '✅ Model ready — tap to manage' : 'Download offline model (1.93 GB)'}
             </Text>
           </TouchableOpacity>
         </View>
 
         {/* Logout */}
-        
+        {isAuthenticated ? (
+          <TouchableOpacity style={styles.logoutBtn} onPress={handleLogout}>
+            <Text style={styles.logoutText}>Sign out</Text>
+          </TouchableOpacity>
+        ) : (
+          <TouchableOpacity
+            style={styles.loginBtn}
+            onPress={() => router.replace('/(auth)/login')}
+          >
+            <Text style={styles.loginBtnText}>Sign in →</Text>
+          </TouchableOpacity>
+        )}
 
-        <Text style={styles.version}>VetGPT v1.0.0</Text>
-         {showSignOut && (
-        <TouchableOpacity style={styles.logoutBtn} onPress={handleLogout}>
-          <Text style={styles.logoutText}>Sign out</Text>
-        </TouchableOpacity>
-      )}
-      {!showSignOut && (
-        <TouchableOpacity style={styles.logoutBtn} onPress={() => router.push('/auth/signin')}>
-          <Text style={styles.loginText}>Sign In</Text>
-        </TouchableOpacity>
-      )}
+        <Text style={styles.version}>VetGPT v1.0.0 · Built with ❤️ for vets</Text>
+
       </ScrollView>
-     
     </SafeAreaView>
   );
 }
@@ -324,7 +342,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   logoutText: { ...Typography.h4, color: Colors.error },
-  loginText: { ...Typography.h4, color: Colors.primary },
+  loginBtn: {
+    marginTop: Spacing.xl, backgroundColor: Colors.primary,
+    borderRadius: Radius.md, padding: Spacing.md, alignItems: 'center',
+  },
+  loginBtnText: { ...Typography.h4, color: '#fff' },
 
   version: {
     ...Typography.caption,

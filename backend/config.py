@@ -5,63 +5,80 @@ Centralised settings loaded from .env file.
 All backend config lives here — no scattered os.getenv() calls.
 """
 
-from pydantic_settings import BaseSettings
 from functools import lru_cache
+from pydantic_settings import BaseSettings
 
 
 class Settings(BaseSettings):
-    # App
-    app_name: str = "VetGPT API"
-    app_version: str = "0.1.0"
-    debug: bool = False
-    environment: str = "development"  # development | production
 
-    # Auth
-    secret_key: str = "change-this-in-production-min-32-chars!!"
-    algorithm: str = "HS256"
-    access_token_expire_minutes: int = 60 * 24 * 7  # 7 days
+    # ── App ───────────────────────────────────────────────────────────────────
+    app_name:    str  = "VetGPT API"
+    app_version: str  = "1.0.0"
+    debug:       bool = False
+    environment: str  = "development"   # development | production
 
-    # Database
+    # ── Auth ──────────────────────────────────────────────────────────────────
+    secret_key:                  str = "change-this-in-production-min-32-chars!!"
+    algorithm:                   str = "HS256"
+    access_token_expire_minutes: int = 60 * 24 * 7   # 7 days
+
+    # ── Database ──────────────────────────────────────────────────────────────
     database_url: str = "sqlite+aiosqlite:///./data/vetgpt.db"
 
-    # LLM
-    llm_provider: str = "anthropic"           # anthropic | openai
-    anthropic_api_key: str = ""
-    openai_api_key: str = ""
-    llm_model_anthropic: str = "claude-sonnet-4-5"
-    llm_model_openai: str = "gpt-4o"
-    llm_max_tokens: int = 1024
-    llm_temperature: float = 0.1              # low temp = factual, consistent
+    # ── LLM ───────────────────────────────────────────────────────────────────
+    llm_provider:        str   = "anthropic"           # anthropic | openai
+    anthropic_api_key:   str   = ""
+    openai_api_key:      str   = ""
+    llm_model_anthropic: str   = "claude-sonnet-4-5"
+    llm_model_openai:    str   = "gpt-4o"
+    llm_max_tokens:      int   = 1500
+    llm_temperature:     float = 0.1
 
-    # RAG
-    rag_top_k: int = 5                        # chunks to retrieve per query
-    rag_min_score: float = 0.3               # minimum similarity score
-    chroma_db_path: str = "./data/chroma_db"
-    chroma_collection_name: str = "vet_manuals"
-    embedding_provider: str = "local"         # local | openai
+    # ── RAG ───────────────────────────────────────────────────────────────────
+    rag_top_k:             int   = 5
+    rag_min_score:         float = 0.3
+    chroma_db_path:        str   = "./data/chroma_db"
+    chroma_collection_name:str   = "vet_manuals"
+    embedding_provider:    str   = "local"             # local | openai
 
-    # Rate limiting
-    rate_limit_free: str = "20/minute"
+    # ── Language ──────────────────────────────────────────────────────────────
+    # Supported query languages — Qwen2.5-3B handles these natively
+    # The LLM detects the input language and responds in kind.
+    # No translation layer is needed; Claude and Qwen are multilingual.
+    supported_languages: str = "en,sw,fr,ar,pt,es,zh"   # comma-separated ISO-639-1
+    default_language:    str = "en"
+    auto_detect_language:bool = True
+
+    # ── Rate limiting ─────────────────────────────────────────────────────────
+    rate_limit_free:    str = "20/minute"
     rate_limit_premium: str = "100/minute"
 
-    # Premium features
-    premium_features: list[str] = ["xray", "image_recognition", "advanced_ocr"]
+    # ── Admin ─────────────────────────────────────────────────────────────────
+    admin_emails: str = ""    # comma-separated admin email addresses
 
-    admin_emails: str = "camara@admin.com"  # comma-separated list of admin emails
+    # ── Premium / Vision ──────────────────────────────────────────────────────
+    google_ai_api_key:                str = ""
+    google_cloud_project_id:          str = ""
+    google_cloud_location:            str = "us"
+    google_document_ai_processor_id:  str = ""
+    google_application_credentials:   str = ""
 
-    #Stripe Billing
-    stripe_secret_key: str = ""
-    stripe_webhook_secret: str = ""
+    # ── Scraping ──────────────────────────────────────────────────────────────
+    ncbi_api_key: str = ""
+
+    # ── Stripe Billing ────────────────────────────────────────────────────────
+    stripe_secret_key:            str = ""
+    stripe_webhook_secret:        str = ""
     stripe_price_premium_monthly: str = ""
-    stripe_price_clinic_monthly: str = ""
-    stripe_success_url: str = "vetgpt://billing/success"
-    stripe_cancel_url: str = "vetgpt://billing/cancel"
-    stripe_portal_return_url: str = "vetgpt://profile"
+    stripe_price_clinic_monthly:  str = ""
+    stripe_success_url:           str = "vetgpt://billing/success"
+    stripe_cancel_url:            str = "vetgpt://billing/cancel"
+    stripe_portal_return_url:     str = "vetgpt://profile"
 
     class Config:
-        env_file = ".env"
+        env_file          = ".env"
         env_file_encoding = "utf-8"
-        extra = "ignore"
+        extra             = "ignore"
 
 
 @lru_cache()

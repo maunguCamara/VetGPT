@@ -78,8 +78,8 @@ export default function RootLayout() {
           if (data.chunks && data.chunks.length > 0) {
             // Write delta to local vector store
             const JSONL = data.chunks.map((c: any) => JSON.stringify(c)).join('\n');
-            const tmpPath = (await import('expo-file-system')).FileSystem.cacheDirectory + 'sync_delta.jsonl';
-            await (await import('expo-file-system')).FileSystem.writeAsStringAsync(tmpPath, JSONL);
+            const tmpPath = (await import('expo-file-system')).default.cacheDirectory + 'sync_delta.jsonl';
+            await (await import('expo-file-system')).default.writeAsStringAsync(tmpPath, JSONL);
             const added = await localVectorStore.syncDelta(tmpPath);
             console.log(`[Sync] Added ${added} new chunks from delta sync`);
           }

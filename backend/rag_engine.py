@@ -71,14 +71,14 @@ class RAGResponse:
     def formatted_references(self) -> str:
         """
         Numbered reference list for display, e.g.:
-        [1] Merck Vet Manual, p.123
-        [2] Plumb's, p.456
+          [1] WikiVet — p.12
+          [2] Merck Vet Manual — p.304
         """
         if not self.citations:
             return ""
         lines = []
         for i, c in enumerate(self.citations, 1):
-            lines.append(f"[{i}] {c.document_title}, p.{c.page_number}")
+            lines.append(f"[{i}] {c.document_title} — p.{c.page_number}")
         return "\n".join(lines)
 
     def to_dict(self) -> dict:
@@ -95,7 +95,6 @@ class RAGResponse:
         }
 
 
-
 # ──────────────────────────────────────────────
 # System prompt
 # ──────────────────────────────────────────────
@@ -104,41 +103,77 @@ SYSTEM_PROMPT = """You are VetGPT, an AI veterinary reference assistant.
 You answer questions for veterinary professionals using content from authoritative \
 veterinary manuals, textbooks, and peer-reviewed sources.
 
+LANGUAGE: Detect the language of the question and respond in that same language.
+You are fluent in English, Swahili (Kiswahili), French, Arabic, Portuguese,
+Spanish, and Chinese. If the question is in Swahili, answer in Swahili.
+If in French, answer in French. If in English, answer in English. And so on.
+Scientific and drug names should always remain in their standard Latin/English form.
+
+CITATION FORMAT — CRITICAL:
+- Each source passage is labelled [Source N: Title, p.X].
+- Cite inline as [N] whenever you draw on a source.
+- Example (English): "Canine parvovirus causes haemorrhagic enteritis [1]."
+- Example (Swahili): "Virusi ya parvovirus husababisha kuhara kwa damu [1]."
+- End every answer with a ## References section:
+  [1] Title — p.X
+  [2] Title — p.X
+
 RULES:
-1. Base your answer ONLY on the provided context passages. Do not add information \
-from outside the context unless you explicitly mark it as general knowledge.
+1. Base your answer ONLY on the provided context passages.
+   Mark anything from outside the context as [General knowledge].
 2. Be precise and clinically accurate. Use correct veterinary terminology.
-3. If dosages or drug information is mentioned, always state the source and \
-recommend confirming with current Plumb's or local formulary.
-4. If the context does not contain enough information to answer, say so clearly \
-rather than hallucinating.
-5. Structure longer answers with brief headings when helpful.
-6. Always end with the sources you drew from (the citations are provided to you).
-7. Never give a definitive diagnosis — you are a reference tool, not a clinician.
+3. For dosages or drugs, cite the source and recommend confirming with
+   current Plumb's Veterinary Drug Handbook or local formulary.
+4. If the context lacks sufficient information, say so — do not hallucinate.
+5. Structure longer answers with ## headings.
+6. Never give a definitive diagnosis — you are a reference tool, not a clinician.
+7. Always include ## References even for a single source.
 """
 
 
-def build_prompt(query: str, chunks: list[dict]) -> str:
-    """Build the RAG prompt from the query and retrieved chunks."""
+LANGUAGE_NAMES = {
+    "en": "English", "sw": "Swahili (Kiswahili)", "fr": "French",
+    "ar": "Arabic",  "pt": "Portuguese",          "es": "Spanish",
+    "zh": "Chinese (Simplified)",
+}
+
+def build_prompt(query: str, chunks: list[dict], language: str | None = None) -> str:
+    """
+    Build the RAG prompt from the query and retrieved chunks.
+
+    Labels each source [Source N] so the LLM can cite them inline.
+    If `language` is specified, adds an explicit language instruction
+    (in addition to the auto-detect instruction in the system prompt).
+    """
     context_parts = []
     for i, chunk in enumerate(chunks, 1):
         source = chunk.get("document_title", chunk.get("source_file", "Unknown"))
-        page = chunk.get("page_number", "?")
+        page   = chunk.get("page_number", "?")
+        score  = chunk.get("score", 0)
         context_parts.append(
-            f"[Source {i}: {source}, p.{page}]\n{chunk['text']}"
+            f"[Source {i}: {source}, p.{page} | relevance {score:.2f}]\n{chunk['text']}"
         )
 
     context_block = "\n\n---\n\n".join(context_parts)
 
-    return f"""The following passages are from authoritative veterinary references:
+    lang_instruction = ""
+    if language and language in LANGUAGE_NAMES:
+        lang_instruction = (
+            f"\nIMPORTANT: The user has requested a response in "
+            f"{LANGUAGE_NAMES[language]}. Write your entire answer in "
+            f"{LANGUAGE_NAMES[language]}, keeping scientific/drug names in Latin/English.\n"
+        )
 
+    return f"""The following {len(chunks)} passages are from authoritative veterinary references.
+Cite them inline as [1], [2], etc. and list them under ## References at the end.
+{lang_instruction}
 {context_block}
 
 ---
 
-Based on the above passages, please answer this veterinary question:
+Veterinary question: {query}
 
-{query}"""
+Answer with inline citations [N] and a ## References section at the end:"""
 
 
 # ──────────────────────────────────────────────

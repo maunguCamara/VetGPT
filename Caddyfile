@@ -1,0 +1,40 @@
+# vetgpt/Caddyfile
+# Caddy reverse proxy configuration
+# Replace api.vetgpt.app with your domain
+
+api.vetgpt.app {
+    # Auto HTTPS via Let's Encrypt
+    reverse_proxy api:8000 {
+        header_up X-Real-IP {remote_host}
+        header_up X-Forwarded-For {remote_host}
+    }
+
+    # Security headers
+    header {
+        Strict-Transport-Security "max-age=31536000; includeSubDomains"
+        X-Content-Type-Options nosniff
+        X-Frame-Options DENY
+        Referrer-Policy strict-origin-when-cross-origin
+        -Server
+    }
+
+    # Rate limit at proxy level (complement to FastAPI rate limiting)
+    rate_limit {
+        zone global {
+            match {
+                path /api/*
+            }
+            key {remote_host}
+            events 200
+            window 1m
+        }
+    }
+
+    # Compression
+    encode gzip
+
+    log {
+        output file /var/log/caddy/vetgpt_access.log
+        format json
+    }
+}

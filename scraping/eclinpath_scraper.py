@@ -51,7 +51,6 @@ SECTION_URLS = [
     "https://eclinpath.com/miscellaneous/",
 ]
 
-
 @dataclass
 class EClinPathArticle:
     """A single eClinPath page."""
@@ -85,7 +84,6 @@ class EClinPathArticle:
             "has_tables": False,
             "has_images": False,
         }
-
 
 class EClinPathScraper:
     """

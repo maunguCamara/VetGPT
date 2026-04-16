@@ -201,8 +201,7 @@ export class MLCClient {
   
   async loadModel(modelPath: string): Promise<void> {
     try {
-      // @ts-expect-error react-native-mlc-llm is a native module without full type declarations
-      const { MLCEngine } = await import('react-native-mlc-llm' as any);
+           const { MLCEngine } = await import('react-native-mlc-llm' as any);
 
       this._engine = await MLCEngine.create({
         model: modelPath,

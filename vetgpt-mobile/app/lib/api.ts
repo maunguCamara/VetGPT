@@ -54,6 +54,27 @@ export interface QueryResponse {
   disclaimer: string;
 }
 
+export type SupportedLanguage = 'en' | 'sw' | 'fr' | 'ar' | 'pt' | 'es' ;
+
+export const LANGUAGE_LABELS: Record<SupportedLanguage, string> = {
+  en: 'English',
+  sw: 'Swahili',
+  fr: 'French',
+  ar: 'Arabic',
+  pt: 'Portuguese',
+  es: 'Spanish',
+};
+
+export interface QueryRequest{
+  query: string;
+  top_k?: number;
+  filter_species?: string;
+  filter_source?: string;
+  language?: SupportedLanguage;
+  stream?: boolean;
+}
+
+
 export interface HistoryItem {
   id: number;
   query_text: string;

@@ -9,9 +9,9 @@ import {
 } from 'react-native';
 import { useState } from 'react';
 import { router } from 'expo-router';
-import { logout } from '../../lib/api';
+import { logout } from '..//lib/api';
 import { Colors, Spacing, Radius, Typography, Shadow } from '../../constants/theme';
-import { LANGUAGE_LABELS, SupportedLanguage } from '../../lib/api';
+import { LANGUAGE_LABELS, SupportedLanguage } from '..//lib/api';
 
 function TierBadge({ tier }: { tier: string }) {
   const isPremium = tier === 'premium' || tier === 'clinic';
@@ -60,7 +60,7 @@ export default function ProfileScreen() {
         onPress: async () => {
           await logout();
           storeLogout();
-          router.replace('/(auth)/login');
+          router.replace('/auth/signin');
         },
       },
     ]);

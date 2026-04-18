@@ -8,7 +8,7 @@
  */
 
 import { create } from 'zustand';
-import { User, Citation } from '../lib/api';
+import { User, Citation, SupportedLanguage } from '../lib/api';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -115,11 +115,12 @@ interface AppState {
   hasLocalModel: boolean;
   filterSpecies: string | null;
   filterSource: string | null;
-
+  preferredLanguage: SupportedLanguage | null;
   setOnline: (v: boolean) => void;
   setHasLocalModel: (v: boolean) => void;
   setFilterSpecies: (v: string | null) => void;
   setFilterSource: (v: string | null) => void;
+  setPreferredLanguage: (v: SupportedLanguage | null) => void;
 }
 
 export const useAppStore = create<AppState>((set) => ({
@@ -127,9 +128,10 @@ export const useAppStore = create<AppState>((set) => ({
   hasLocalModel: false,          // Phase 2: true when Qwen downloaded
   filterSpecies: null,
   filterSource: null,
-
+  preferredLanguage: null,
   setOnline: (isOnline) => set({ isOnline }),
   setHasLocalModel: (hasLocalModel) => set({ hasLocalModel }),
   setFilterSpecies: (filterSpecies) => set({ filterSpecies }),
   setFilterSource: (filterSource) => set({ filterSource }),
+  setPreferredLanguage: (preferredLanguage) => set({ preferredLanguage }),
 }));

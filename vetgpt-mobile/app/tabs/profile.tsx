@@ -12,6 +12,9 @@ import { router } from 'expo-router';
 import { logout } from '..//lib/api';
 import { Colors, Spacing, Radius, Typography, Shadow } from '../../constants/theme';
 import { LANGUAGE_LABELS, SupportedLanguage } from '..//lib/api';
+import { useAuthStore, useAppStore } from '../store';
+
+
 
 function TierBadge({ tier }: { tier: string }) {
   const isPremium = tier === 'premium' || tier === 'clinic';
@@ -178,7 +181,7 @@ export default function ProfileScreen() {
           </Text>
           <TouchableOpacity style={styles.downloadBtn} onPress={() => router.push('/download-model')}>
             <Text style={styles.downloadBtnText}>
-              {hasLocalModel ? '✅ Model ready — tap to manage' : 'Download offline model (1.93 GB)'}
+              {useAppStore.getState().hasLocalModel ? '✅ Model ready — tap to manage' : 'Download offline model (1.93 GB)'}
             </Text>
           </TouchableOpacity>
         </View>
@@ -191,7 +194,7 @@ export default function ProfileScreen() {
         ) : (
           <TouchableOpacity
             style={styles.loginBtn}
-            onPress={() => router.replace('/(auth)/login')}
+            onPress={() => router.replace('/auth/signin')}
           >
             <Text style={styles.loginBtnText}>Sign in →</Text>
           </TouchableOpacity>

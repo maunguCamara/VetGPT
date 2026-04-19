@@ -179,7 +179,7 @@ export default function ManualsScreen() {
     if (item.source) {
       setFilterSource(item.source);
       router.push({
-        pathname: '/tabs/search',
+        pathname: '/(tabs)/search',
         params: { q: '', source: item.source }
       });
     }

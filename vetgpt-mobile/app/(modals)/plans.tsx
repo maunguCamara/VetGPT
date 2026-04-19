@@ -9,7 +9,7 @@ import {
 } from 'react-native';
 import { useState } from 'react';
 import { router } from 'expo-router';
-import { createCheckout, openBillingPortal } from '..//lib/api';
+import { createCheckout, openBillingPortal } from '../lib/api';
 import { useAuthStore } from '../../store';
 import { Colors, Spacing, Radius, Typography, Shadow } from '../../constants/theme';
 
@@ -76,7 +76,7 @@ export default function PlansModal() {
     if (!user) {
       Alert.alert('Sign in required', 'Please sign in to upgrade.', [
         { text: 'Cancel' },
-        { text: 'Sign in', onPress: () => { router.back(); router.push('/auth/signin'); } },
+        { text: 'Sign in', onPress: () => { router.back(); router.push('/(auth)/signin'); } },
       ]);
       return;
     }

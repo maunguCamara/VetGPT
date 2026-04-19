@@ -9,9 +9,9 @@ import {
 } from 'react-native';
 import { useState } from 'react';
 import { router } from 'expo-router';
-import { logout } from '..//lib/api';
+import { logout } from '../lib/api';
 import { Colors, Spacing, Radius, Typography, Shadow } from '../../constants/theme';
-import { LANGUAGE_LABELS, SupportedLanguage } from '..//lib/api';
+import { LANGUAGE_LABELS, SupportedLanguage } from '../lib/api';
 import { useAuthStore, useAppStore } from '../store';
 
 
@@ -63,7 +63,7 @@ export default function ProfileScreen() {
         onPress: async () => {
           await logout();
           storeLogout();
-          router.replace('/auth/signin');
+          router.replace('/(auth)/signin');
         },
       },
     ]);
@@ -194,13 +194,13 @@ export default function ProfileScreen() {
         ) : (
           <TouchableOpacity
             style={styles.loginBtn}
-            onPress={() => router.replace('/auth/signin')}
+            onPress={() => router.replace('/(auth)/signin')}
           >
             <Text style={styles.loginBtnText}>Sign in →</Text>
           </TouchableOpacity>
         )}
 
-        <Text style={styles.version}>VetGPT v1.0.0 · Built with ❤️ for vets</Text>
+        <Text style={styles.version}>VetGPT v1.0.0</Text>
 
       </ScrollView>
     </SafeAreaView>

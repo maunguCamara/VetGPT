@@ -3,10 +3,7 @@
  * Root layout — auth gate, navigation setup, network watcher.
  */
 
-
-
 import { Stack } from 'expo-router';
-
 
 export default function AuthLayout() {
   return (

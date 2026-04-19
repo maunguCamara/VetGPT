@@ -10,7 +10,7 @@ import {
 } from 'react-native';
 import { useState } from 'react';
 import { router } from 'expo-router';
-import { login } from '..//lib/api';
+import { login } from '../lib/api';
 import { useAuthStore } from '../../store';
 import { Colors, Spacing, Radius, Typography, Shadow } from '../../constants/theme';
 
@@ -112,7 +112,7 @@ export default function SignInScreen() {
       const res = await login(email.trim().toLowerCase(), password);
       setUser(res.user);
       // Use replace to remove signin from navigation stack
-      router.replace('/tabs/chat');
+      router.replace('/(tabs)/chat');
     } catch (err: any) {
       const msg = err?.message ?? 'Login failed. Please check your credentials.';
       Alert.alert('Login failed', msg);
@@ -169,7 +169,7 @@ export default function SignInScreen() {
           </TouchableOpacity>
 
           <TouchableOpacity 
-            onPress={() => router.push('/auth/register')} 
+            onPress={() => router.push('/(auth)/register')} 
             style={styles.registerLink}
           >
             <Text style={styles.registerLinkText}>

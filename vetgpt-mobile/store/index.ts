@@ -8,7 +8,8 @@
  */
 
 import { create } from 'zustand';
-import { User, Citation } from '../lib/api';
+import { User, Citation } from '../app/lib/api';
+
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 

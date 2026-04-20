@@ -99,7 +99,7 @@ export default function RootLayout() {
     <GestureHandlerRootView style={{ flex: 1 }}>
       <StatusBar style="light" backgroundColor={Colors.primary} />
       <Stack screenOptions={{ headerShown: false }}>
-        <Stack.Screen name="index"          options={{ animation: 'none' }} />
+
         <Stack.Screen name="(auth)"         options={{ animation: 'fade' }} />
         <Stack.Screen name="(tabs)"         options={{ animation: 'fade' }} />
         <Stack.Screen name="(modals)"       options={{ presentation: 'modal' }} />

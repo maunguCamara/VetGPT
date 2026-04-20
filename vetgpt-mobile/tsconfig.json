@@ -2,7 +2,8 @@
   "compilerOptions": {
     "module": "esnext",
     "moduleResolution": "bundler",
-    "target": "esnext"
+    "target": "esnext",
+    "types": []  
   },
   "extends": "expo/tsconfig.base",
   "include": [

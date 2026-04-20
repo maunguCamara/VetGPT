@@ -126,7 +126,7 @@ export default function ManualsScreen() {
       if (!token) {
         Alert.alert('Authentication required', 'Please sign in to upload manuals.');
         setUploading(false);
-        router.push('/auth/signin');
+        router.push('/(auth)/signin');
         return;
       }
 

@@ -9,12 +9,15 @@ import {
   StyleSheet, KeyboardAvoidingView, Platform, ActivityIndicator,
   SafeAreaView, Keyboard,
 } from 'react-native';
-import { useState, useRef, useCallback } from 'react';
+import React, { useState, useRef, useCallback, useEffect } from 'react';
 import Markdown from 'react-native-markdown-display';
 import { useChatStore, useAppStore, useAuthStore } from '../../store';
 import type { Message } from '../../store';
-import { offlineRouter } from '../lib/offlineRouter';
+import { offlineRouter } from '..//lib/offlineRouter';
 import { Colors, Spacing, Radius, Typography, Shadow } from '../../constants/theme';
+import { useSpeechRecognition, LOCALE_FLAG } from '..//lib/useSpeechRecognition';
+import type { SupportedLanguage } from '..//lib/api';
+import { LANGUAGE_LABELS } from '..//lib/api';
 
 const SUGGESTED = [
   'Clinical signs of canine parvovirus?',
@@ -111,8 +114,13 @@ function WelcomeScreen({ onPress }: { onPress: (q: string) => void }) {
 }
 
 export default function ChatScreen() {
-  const [input, setInput] = useState('');
-  const flatListRef = useRef<FlatList>(null);
+  const [input, setInput]           = useState('');
+  const [showLangPicker, setShowLangPicker] = useState(false);
+  const flatListRef                  = useRef<FlatList>(null);
+  const {
+    transcript, state: speechState, error: speechError,
+    isAvailable: speechAvailable, startListening, stopListening, clearTranscript,
+  } = useSpeechRecognition();
 
   const {
     messages, isQuerying,
@@ -126,6 +134,24 @@ export default function ChatScreen() {
   const scrollToBottom = useCallback(() => {
     setTimeout(() => flatListRef.current?.scrollToEnd({ animated: true }), 80);
   }, []);
+
+  // Sync speech transcript into the text input
+  const { preferredLanguage } = useAppStore();
+
+  // When transcript updates, fill input box
+  React.useEffect(() => {
+    if (transcript) setInput(transcript);
+  }, [transcript]);
+
+  function handleMicPress() {
+    if (speechState === 'listening') {
+      stopListening();
+    } else {
+      const lang = (preferredLanguage as SupportedLanguage) ?? 'en';
+      clearTranscript();
+      startListening(lang);
+    }
+  }
 
   async function sendMessage(text?: string) {
     const query = (text ?? input).trim();
@@ -184,15 +210,12 @@ export default function ChatScreen() {
   return (
     <SafeAreaView style={styles.safe}>
       <View style={styles.header}>
-        <View style={styles.headerLeft}>
-          <Text style={styles.headerTitle}>Chat</Text>
-          <View style={styles.statusIndicator}>
-            <View style={[styles.statusDot, {backgroundColor: isOnline ? Colors.online : Colors.offline}]} />
-                    <Text style={styles.headerSub}>
-            {isOnline ? ' Online' : ' Offline'}
+        <View>
+          <Text style={styles.headerTitle}>VetGPT</Text>
+          <Text style={styles.headerSub}>
+            {isOnline ? '🟢 Online' : '🔴 Offline'}
             {filterSpecies ? `  ·  ${filterSpecies}` : ''}
           </Text>
-          </View>
         </View>
         <TouchableOpacity onPress={newSession} style={styles.newChatBtn} activeOpacity={0.8}>
           <Text style={styles.newChatText}>+ New</Text>
@@ -216,6 +239,34 @@ export default function ChatScreen() {
           keyboardShouldPersistTaps="handled"
         />
 
+        {/* Language picker for speech */}
+        {showLangPicker && (
+          <View style={styles.langPicker}>
+            {(Object.keys(LANGUAGE_LABELS) as SupportedLanguage[]).map((lang) => (
+              <TouchableOpacity
+                key={lang}
+                style={styles.langChip}
+                onPress={() => {
+                  setShowLangPicker(false);
+                  clearTranscript();
+                  startListening(lang);
+                }}
+              >
+                <Text style={styles.langChipText}>
+                  {LOCALE_FLAG[lang]} {LANGUAGE_LABELS[lang]}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        )}
+
+        {/* Speech error */}
+        {!!speechError && (
+          <View style={styles.speechError}>
+            <Text style={styles.speechErrorText}>{speechError}</Text>
+          </View>
+        )}
+
         <View style={styles.inputBar}>
           {isPremium && (
             <TouchableOpacity style={styles.imageBtn} activeOpacity={0.7}>
@@ -224,8 +275,8 @@ export default function ChatScreen() {
           )}
           <TextInput
             style={styles.input}
-            placeholder="Ask a veterinary question..."
-            placeholderTextColor={Colors.textMuted}
+            placeholder={speechState === 'listening' ? 'Listening...' : 'Ask a veterinary question...'}
+            placeholderTextColor={speechState === 'listening' ? Colors.primary : Colors.textMuted}
             value={input}
             onChangeText={setInput}
             multiline={false}
@@ -233,8 +284,23 @@ export default function ChatScreen() {
             returnKeyType="send"
             onSubmitEditing={() => sendMessage()}
             blurOnSubmit={false}
-            editable={!isQuerying}
+            editable={!isQuerying && speechState !== 'listening'}
           />
+          {/* Mic button — long press = pick language, tap = use preferred */}
+          <TouchableOpacity
+            style={[
+              styles.micBtn,
+              speechState === 'listening' && styles.micBtnActive,
+            ]}
+            onPress={handleMicPress}
+            onLongPress={() => setShowLangPicker(true)}
+            activeOpacity={0.7}
+            disabled={!speechAvailable}
+          >
+            <Text style={styles.micIcon}>
+              {speechState === 'listening' ? '⏹' : '🎙️'}
+            </Text>
+          </TouchableOpacity>
           <TouchableOpacity
             style={[styles.sendBtn, (!input.trim() || isQuerying) && styles.sendBtnDisabled]}
             onPress={() => sendMessage()}
@@ -260,11 +326,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.primary,
     paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm, paddingTop: Spacing.md,
   },
-  headerLeft: { flex: 1 },
   headerTitle: { ...Typography.h3, color: '#fff' },
-  statusIndicator: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  statusDot: { width: 8, height: 8, borderRadius: 4 },
-
   headerSub: { ...Typography.caption, color: 'rgba(255,255,255,0.75)', marginTop: 2 },
   newChatBtn: {
     backgroundColor: 'rgba(255,255,255,0.2)',
@@ -335,6 +397,33 @@ const styles = StyleSheet.create({
   },
   sendBtnDisabled: { backgroundColor: Colors.borderStrong },
   sendIcon: { color: '#fff', fontSize: 20, fontWeight: '700' },
+  micBtn: {
+    width: 40, height: 40, borderRadius: Radius.full,
+    backgroundColor: Colors.surfaceAlt,
+    alignItems: 'center', justifyContent: 'center',
+    borderWidth: 1, borderColor: Colors.border,
+  },
+  micBtnActive: {
+    backgroundColor: Colors.primary + '22',
+    borderColor: Colors.primary,
+  },
+  micIcon: { fontSize: 18 },
+  langPicker: {
+    flexDirection: 'row', flexWrap: 'wrap', gap: 6,
+    paddingHorizontal: Spacing.sm, paddingVertical: 6,
+    backgroundColor: Colors.surface,
+    borderTopWidth: 1, borderTopColor: Colors.border,
+  },
+  langChip: {
+    backgroundColor: Colors.surfaceAlt, borderRadius: Radius.full,
+    paddingHorizontal: Spacing.sm, paddingVertical: 5,
+    borderWidth: 1, borderColor: Colors.border,
+  },
+  langChipText: { ...Typography.caption, color: Colors.textPrimary },
+  speechError: {
+    backgroundColor: '#FFF3CD', paddingHorizontal: Spacing.md, paddingVertical: 6,
+  },
+  speechErrorText: { ...Typography.caption, color: '#856404' },
 });
 
 const markdownStyles: any = {

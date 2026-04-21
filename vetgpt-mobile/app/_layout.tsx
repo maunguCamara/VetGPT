@@ -1,11 +1,11 @@
 /**
  * vetgpt-mobile/app/_layout.tsx
  * Root layout — auth gate, navigation setup, network watcher.
- *
- * CRITICAL: Stack.Screen name must match actual folder/file names exactly.
- * Expo Router maps:  (auth)   folder → name="(auth)"
- *                    (tabs)   folder → name="(tabs)"
- *                    (modals) folder → name="(modals)"
+ *Compatible with both expo go (dev) and native build (prod)
+ * Uses fetch-based network detection instead of expo network, and gurad rails all naive-only calls behind
+ * dynamic imports that fail solently in expo go and work correctly after : npx expo prebuild
+ *                   
+ *                    
  */
 
 import { useEffect } from 'react';
@@ -20,9 +20,68 @@ import { offlineRouter } from './lib/offlineRouter';
 import { localVectorStore } from './lib/localVectorStore';
 import { Colors } from '../constants/theme';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Platform } from 'react-native';
+
 
 SplashScreen.preventAutoHideAsync();
 
+
+// Network check (no expo-network --works in Expoo Go) 
+// Uses a tiny DNS-over-HTTPS fetch instead of native Network module
+
+async function isInternetAvailable():Promise<boolean> {
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 5000);
+    const res = await fetch('https://dns.google/resolve?name=google.com&type=A', 
+      { method: 'HEAD', signal: controller.signal },
+    );
+    clearTimeout(timeout);
+    return res.status < 500;
+  } catch {
+    return false;
+  }
+}
+
+// Delta sync (native build only -silently skipped in Expo Go )
+
+async function runDeltaSync(): Promise<boolean> {
+  // expo sqlite is a native module - not available in Expo GO
+  //after ' npx prebuild' this works on both iOS and Android'
+  if (Platform.OS !== 'ios' && Platform.OS !== 'android') return;
+  try {
+    const AsyncStorage = (await import('@react-native-async-storage/async-storage')).default;
+    const { default : FileSystem } = await import('expo-file-system');
+    const { localVectorStore } = await import('./lib/localVectorStore');
+    const { BASE_URL } = await import('./lib/api');
+
+    const SYNC_KEY = 'vetgpt_last_sync';
+    const lastSync = await AsyncStorage.getItem(SYNC_KEY) ?? '';
+    const token    = await getStoredToken();
+    if (!token) return false;
+
+    const url = `${BASE_URL}/api/sync/delta?since=${encodeURIComponent(lastSync)}&limit=500`;
+    const res = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
+    if (res.ok) return;
+    
+    const data = await res.json();
+    if (data.chunks?.length > 0) {
+      const jsonl = data.chinks.map((c:any) => JSON.stringify(c)).join('\n');
+      const tmpPath = `${FileSystem.cacheDirectory}sync_delta.jsonl`;
+      await FileSystem.writeAsStringAsync(tmpPath, jsonl);
+      const added = await localVectorStore.syncDelta(tmpPath);
+      console.log(`[Sync] + ${added} chunks from server}`);
+    } 
+    await AsyncStorage.setItem(
+      SYNC_KEY,
+      data.synced_at ?? new Date().toISOString(),
+    );
+  }catch {
+
+  }
+}
+
+//Root layout
 export default function RootLayout() {
   const { setUser } = useAuthStore();
   const { setOnline } = useAppStore();
@@ -39,59 +98,30 @@ export default function RootLayout() {
         }
       } catch {
         setUser(null);
-      } finally {
-        offlineRouter.init();
-        SplashScreen.hideAsync();
+      } finally {try {await SplashScreen.hideAsync();} catch {}
       }
     }
     restoreSession();
   }, []);
 
+  //Netwotrk watcher - fetch based works without any native module
   useEffect(() => {
     let wasOffline = false;
 
     async function checkNetwork() {
-      const state = await Network.getNetworkStateAsync();
-      const online = !!(state.isConnected && state.isInternetReachable);
+
+      const online = await isInternetAvailable();
       setOnline(online);
 
       // Trigger delta sync when coming back online
       if (online && wasOffline) {
-        triggerDeltaSync();
+        runDeltaSync().catch(() => {});
       }
       wasOffline = !online;
     }
 
-    async function triggerDeltaSync() {
-      try {
-        const SYNC_KEY = 'vetgpt_last_sync';
-        const lastSync = await AsyncStorage.getItem(SYNC_KEY) ?? '';
-        const token    = await getStoredToken();
-        if (!token) return;
-
-        const { BASE_URL } = await import('./lib/api');
-        const url = `${BASE_URL}/api/sync/delta?since=${encodeURIComponent(lastSync)}&limit=500`;
-        const res = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
-
-        if (res.ok) {
-          const data = await res.json();
-          if (data.chunks && data.chunks.length > 0) {
-            // Write delta to local vector store
-            const JSONL = data.chunks.map((c: any) => JSON.stringify(c)).join('\n');
-            const tmpPath = (await import('expo-file-system')).default.cacheDirectory + 'sync_delta.jsonl';
-            await (await import('expo-file-system')).default.writeAsStringAsync(tmpPath, JSONL);
-            const added = await localVectorStore.syncDelta(tmpPath);
-            console.log(`[Sync] Added ${added} new chunks from delta sync`);
-          }
-          await AsyncStorage.setItem(SYNC_KEY, data.synced_at ?? new Date().toISOString());
-        }
-      } catch (err) {
-        console.warn('[Sync] Delta sync failed:', err);
-      }
-    }
-
     checkNetwork();
-    const interval = setInterval(checkNetwork, 10000);
+    const interval = setInterval(checkNetwork, 15000);
     return () => clearInterval(interval);
   }, []);
 

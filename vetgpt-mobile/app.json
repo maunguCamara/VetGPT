@@ -52,7 +52,19 @@
       "expo-secure-store",
       "expo-document-picker",
       "expo-image-picker",
-      "expo-camera",
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Allow VetGPT to access your camera to capture clinical images for analysis"
+        }
+      ],
+      [
+        "@jamsch/expo-speech-recognition",
+        {
+          "microphonePermission": "VetGPT uses the microphone for voice queries.",
+          "speechRecognitionPermission": "VetGPT uses speech recognition to transcribe your questions."
+        }
+      ],
       [
         "expo-build-properties",
         {

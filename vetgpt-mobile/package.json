@@ -39,7 +39,8 @@
     "react-native-safe-area-context": "^5.0.0",
     "react-native-screens": "3.31.1",
     "react-native-web": "~0.19.10",
-    "zustand": "^4.4.7"
+    "zustand": "^4.4.7",
+    "@jamsch/expo-speech-recognition": "^0.2.10"
   },
   "devDependencies": {
     "@babel/core": "^7.24.0",

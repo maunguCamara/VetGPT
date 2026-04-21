@@ -20,7 +20,10 @@
       "buildNumber": "1",
       "infoPlist": {
         "NSPhotoLibraryUsageDescription": "VetGPT needs access to photo library to analyze veterinary images",
-        "NSCameraUsageDescription": "VetGPT needs camera access to capture veterinary images for analysis"
+        "NSCameraUsageDescription": "VetGPT needs camera access to capture veterinary images for analysis",
+        "NSMicrophoneUsageDescription": "VetGPT needs microphone access for voice input features",
+        "NSSpeechRecognitionUsageDescription": "VetGPT needs speech recognition access for voice input features"
+      
       }
     },
     "android": {
@@ -31,16 +34,18 @@
       "package": "com.vetgpt.app",
       "versionCode": 1,
       "permissions": [
-        "android.permission.CAMERA",
-        "android.permission.READ_EXTERNAL_STORAGE",
-        "android.permission.WRITE_EXTERNAL_STORAGE",
-        "android.permission.INTERNET",
-        "android.permission.ACCESS_NETWORK_STATE"
+        "CAMERA",
+        "READ_EXTERNAL_STORAGE",
+        "WRITE_EXTERNAL_STORAGE",
+        "INTERNET",
+        "ACCESS_NETWORK_STATE",
+        "RECORD_AUDIO"
       ]
     },
     "web": {
       "favicon": "./assets/favicon.png",
-      "bundler": "metro"
+      "bundler": "metro",
+      "output": "static"
     },
     "plugins": [
       "expo-router",

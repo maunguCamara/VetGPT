@@ -4,10 +4,6 @@ import { View, Text, StyleSheet } from 'react-native';
 import { useAuthStore, useAppStore } from '../store';
 
 
-
-
-
-
 export default function TabLayout() {
   const { isAuthenticated, isLoading } = useAuthStore();
   if (isLoading) return null;

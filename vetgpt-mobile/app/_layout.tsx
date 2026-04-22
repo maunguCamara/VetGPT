@@ -17,8 +17,8 @@ import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import * as SplashScreen from 'expo-splash-screen';
-import { useAuthStore, useAppStore } from '../store';
-import { getStoredToken, getMe } from './lib/api';
+import { useAuthStore, useAppStore } from '../app/store';
+import { getStoredToken, getMe } from '../app/lib/api';
 import { Colors } from '../constants/theme';
 
 SplashScreen.preventAutoHideAsync();
@@ -131,10 +131,10 @@ export default function RootLayout() {
       <Stack screenOptions={{ headerShown: false }}>
         <Stack.Screen name="index"          options={{ animation: 'none' }} />
         <Stack.Screen name="(auth)"         options={{ animation: 'fade' }} />
-        <Stack.Screen name="(tabs)"         options={{ animation: 'fade' }} />
-        <Stack.Screen name="(modals)"       options={{ presentation: 'modal' }} />
-        <Stack.Screen name="download-model" options={{ presentation: 'modal' }} />
-      </Stack>
-    </GestureHandlerRootView>
+       /<Stack.Screen name="(tabs)"         options={{ animation: 'fade' }} />
+      <Stack.Screen name="(modals)"       options={{ presentation: 'modal' }} />
+       <Stack.Screen name="download-model" options={{ presentation: 'modal' }} />
+  </Stack>
+  </GestureHandlerRootView>
   );
 }

@@ -3,7 +3,7 @@
  * Root redirect — sends users to chat if logged in, login if not.
  */
 import { Redirect } from 'expo-router';
-import { useAuthStore } from '../store';
+import { useAuthStore } from '../app/store';
 
 export default function Index() {
   const { isAuthenticated, isLoading } = useAuthStore();

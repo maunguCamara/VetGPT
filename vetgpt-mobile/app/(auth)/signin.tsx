@@ -1,121 +1,146 @@
 /**
- * vetgpt-mobile/app/(auth)/signin.tsx
- * Sign-in screen - login with email and password
+ * vetgpt-mobile/app/(auth)/login.tsx
+ *
+ * Sign-in screen with:
+ *   - Email + password login (FastAPI OAuth2)
+ *   - Google Sign-In (OAuth 2.0 via expo-auth-session)
+ *
+ * Security:
+ *   - Passwords sent over HTTPS only, never stored
+ *   - Token stored in SecureStore (iOS Keychain / Android Keystore)
+ *   - Google ID token verified server-side against Google's public keys
+ *   - No Google password ever touches our server
  */
 
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet,
   ActivityIndicator, KeyboardAvoidingView, Platform,
-  ScrollView, Alert,
+  Alert, ScrollView,
 } from 'react-native';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { router } from 'expo-router';
-import { login } from '../lib/api';
+import * as WebBrowser from 'expo-web-browser';
+import * as AuthSession from 'expo-auth-session';
+import * as Google from 'expo-auth-session/providers/google';
+import { loginUser, googleSignIn, register } from '../lib/api';
 import { useAuthStore } from '../../store';
 import { Colors, Spacing, Radius, Typography, Shadow } from '../../constants/theme';
 
-// ─── Validation helpers ───────────────────────────────────────────────────────
+// Required for expo-auth-session to close the browser after OAuth
+WebBrowser.maybeCompleteAuthSession();
 
-function validateEmail(email: string): string | null {
-  if (!email.trim()) return 'Email is required';
-  const re = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
-  if (!re.test(email.trim())) return 'Enter a valid email address';
-  if (email.length > 254) return 'Email is too long';
-  return null;
-}
+// ── Your Google OAuth Client IDs ─────────────────────────────────────────────
+// Get from: console.cloud.google.com → APIs & Services → Credentials
+// Replace these placeholders with your real IDs before production build.
+const GOOGLE_CLIENT_IDS = {
+  iosClientId:     process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID     ?? '',
+  androidClientId: process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID ?? '',
+  webClientId:     process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID     ?? '',
+};
 
-function validatePassword(password: string): string | null {
-  if (!password) return 'Password is required';
-  if (password.length < 8) return 'Password must be at least 8 characters';
-  if (password.length > 72) return 'Password must be under 72 characters';
-  return null;
-}
+const GOOGLE_CONFIGURED = Object.values(GOOGLE_CLIENT_IDS).some(Boolean);
 
-// ─── Field component ──────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────────
 
-interface FieldProps {
-  label: string;
-  value: string;
-  onChange: (v: string) => void;
-  error?: string | null;
-  placeholder?: string;
-  secure?: boolean;
-  keyboardType?: 'default' | 'email-address';
-  autoCapitalize?: 'none' | 'words';
-  maxLength?: number;
-}
-
-function Field({
-  label, value, onChange, error, placeholder,
-  secure = false, keyboardType = 'default',
-  autoCapitalize = 'none', maxLength = 100,
-}: FieldProps) {
-  return (
-    <View style={fieldStyles.wrapper}>
-      <View style={fieldStyles.labelRow}>
-        <Text style={fieldStyles.label}>{label}</Text>
-      </View>
-      <TextInput
-        style={[fieldStyles.input, !!error && fieldStyles.inputError]}
-        placeholder={placeholder ?? label}
-        placeholderTextColor={Colors.textMuted}
-        value={value}
-        onChangeText={onChange}
-        secureTextEntry={secure}
-        keyboardType={keyboardType}
-        autoCapitalize={autoCapitalize}
-        autoCorrect={false}
-        maxLength={maxLength}
-      />
-      {!!error && <Text style={fieldStyles.error}>{error}</Text>}
-    </View>
-  );
-}
-
-const fieldStyles = StyleSheet.create({
-  wrapper: { marginBottom: Spacing.md },
-  labelRow: { marginBottom: Spacing.xs },
-  label: { ...Typography.label, color: Colors.textSecondary },
-  input: {
-    borderWidth: 1, borderColor: Colors.border, borderRadius: Radius.md,
-    paddingHorizontal: Spacing.md, paddingVertical: 13,
-    ...Typography.body, color: Colors.textPrimary, backgroundColor: Colors.background,
-  },
-  inputError: { borderColor: Colors.error },
-  error: { ...Typography.caption, color: Colors.error, marginTop: 4 },
-});
-
-// ─── Main Screen ──────────────────────────────────────────────────────────────
-
-export default function SignInScreen() {
-  const [email, setEmail] = useState('');
+export default function LoginScreen() {
+  const [email, setEmail]       = useState('');
   const [password, setPassword] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [errors, setErrors] = useState<{ email?: string | null; password?: string | null }>({});
-
+  const [loading, setLoading]   = useState(false);
+  const [gLoading, setGLoading] = useState(false);
   const { setUser } = useAuthStore();
 
-  function validate(): boolean {
-    const newErrors = {
-      email: validateEmail(email),
-      password: validatePassword(password),
-    };
-    setErrors(newErrors);
-    return !newErrors.email && !newErrors.password;
+  // Google OAuth hook
+  const [request, response, promptAsync] = Google.useAuthRequest(GOOGLE_CLIENT_IDS);
+
+  // Handle Google OAuth response
+  useEffect(() => {
+    if (response?.type === 'success') {
+      const { authentication } = response;
+      if (authentication?.idToken) {
+        handleGoogleToken(authentication.idToken);
+      } else if (authentication?.accessToken) {
+        // Fallback: fetch ID token using access token
+        fetchGoogleIdToken(authentication.accessToken);
+      }
+    } else if (response?.type === 'error') {
+      setGLoading(false);
+      Alert.alert('Google Sign-In failed', response.error?.message ?? 'Try again.');
+    } else if (response?.type === 'dismiss') {
+      setGLoading(false);
+    }
+  }, [response]);
+
+  async function fetchGoogleIdToken(accessToken: string) {
+    try {
+      const res  = await fetch(
+        `https://oauth2.googleapis.com/tokeninfo?access_token=${accessToken}`
+      );
+      const data = await res.json();
+      if (data.email) {
+        // Use access token as ID token for verification
+        await handleGoogleToken(accessToken);
+      }
+    } catch {
+      setGLoading(false);
+      Alert.alert('Google Sign-In failed', 'Could not retrieve account info.');
+    }
   }
 
-  async function handleSignIn() {
-    if (!validate()) return;
-
-    setLoading(true);
+  async function handleGoogleToken(idToken: string) {
+    setGLoading(true);
     try {
-      const res = await login(email.trim().toLowerCase(), password);
-      setUser(res.user);
-      // Use replace to remove signin from navigation stack
+      const data = await googleSignIn(idToken);
+      setUser(data.user);
       router.replace('/(tabs)/chat');
     } catch (err: any) {
-      const msg = err?.message ?? 'Login failed. Please check your credentials.';
-      Alert.alert('Login failed', msg);
+      Alert.alert(
+        'Google Sign-In failed',
+        err.message ?? 'Could not sign in with Google. Try email/password.',
+      );
+    } finally {
+      setGLoading(false);
+    }
+  }
+
+  async function handleGooglePress() {
+    if (!GOOGLE_CONFIGURED) {
+      Alert.alert(
+        'Google Sign-In not configured',
+        'Add your Google Client IDs to your .env file.\n\n' +
+        'EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID=...\n' +
+        'EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID=...',
+      );
+      return;
+    }
+    setGLoading(true);
+    await promptAsync();
+    // gLoading is set to false in the useEffect above
+  }
+
+  async function handleEmailLogin() {
+    const emailTrimmed = email.trim().toLowerCase();
+    if (!emailTrimmed || !password) {
+      Alert.alert('Missing fields', 'Enter your email and password.');
+      return;
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(emailTrimmed)) {
+      Alert.alert('Invalid email', 'Enter a valid email address.');
+      return;
+    }
+    setLoading(true);
+    try {
+      const data = await loginUser(emailTrimmed, password);
+      setUser(data.user);
+      router.replace('/(tabs)/chat');
+    } catch (err: any) {
+      const msg = err.message ?? '';
+      if (msg.includes('401') || msg.includes('Incorrect')) {
+        Alert.alert('Login failed', 'Incorrect email or password.');
+      } else if (msg.includes('network') || msg.includes('fetch')) {
+        Alert.alert('Connection error', 'Could not reach the server. Check your internet connection.');
+      } else {
+        Alert.alert('Login failed', msg || 'Something went wrong. Try again.');
+      }
     } finally {
       setLoading(false);
     }
@@ -126,82 +151,165 @@ export default function SignInScreen() {
       style={{ flex: 1, backgroundColor: Colors.primary }}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
-      <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
-
-        <View style={styles.header}>
-          {/* No back button here - user can use device back or go to register */}
-          <Text style={styles.title}>Welcome Back</Text>
-          <Text style={styles.subtitle}>Sign in to VetGPT</Text>
+      <ScrollView
+        contentContainerStyle={s.container}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Hero */}
+        <View style={s.hero}>
+          <Text style={s.logo}>🐾</Text>
+          <Text style={s.appName}>VetGPT</Text>
+          <Text style={s.tagline}>AI veterinary reference</Text>
         </View>
 
-        <View style={styles.card}>
-          <Field
-            label="Email"
-            value={email}
-            onChange={(v) => { setEmail(v); setErrors((e) => ({ ...e, email: null })); }}
-            error={errors.email}
-            placeholder="vet@clinic.com"
-            keyboardType="email-address"
-            maxLength={254}
-            autoCapitalize="none"
-          />
+        <View style={s.card}>
 
-          <Field
-            label="Password"
-            value={password}
-            onChange={(v) => { setPassword(v); setErrors((e) => ({ ...e, password: null })); }}
-            error={errors.password}
-            placeholder="Enter your password"
-            secure
-            maxLength={72}
-          />
-
+          {/* Google Sign-In */}
           <TouchableOpacity
-            style={[styles.button, loading && { opacity: 0.6 }]}
-            onPress={handleSignIn}
+            style={[s.googleBtn, (gLoading || !request) && s.btnDisabled]}
+            onPress={handleGooglePress}
+            disabled={gLoading || !request}
+            activeOpacity={0.85}
+          >
+            {gLoading ? (
+              <ActivityIndicator color={Colors.textPrimary} />
+            ) : (
+              <>
+                <Text style={s.googleIcon}>G</Text>
+                <Text style={s.googleBtnText}>Continue with Google</Text>
+              </>
+            )}
+          </TouchableOpacity>
+
+          {/* Divider */}
+          <View style={s.divider}>
+            <View style={s.dividerLine} />
+            <Text style={s.dividerText}>or sign in with email</Text>
+            <View style={s.dividerLine} />
+          </View>
+
+          {/* Email field */}
+          <Text style={s.label}>Email</Text>
+          <TextInput
+            style={s.input}
+            placeholder="vet@clinic.com"
+            placeholderTextColor={Colors.textMuted}
+            value={email}
+            onChangeText={setEmail}
+            keyboardType="email-address"
+            autoCapitalize="none"
+            autoCorrect={false}
+            autoComplete="email"
+            returnKeyType="next"
+          />
+
+          {/* Password field */}
+          <Text style={s.label}>Password</Text>
+          <TextInput
+            style={s.input}
+            placeholder="Your password"
+            placeholderTextColor={Colors.textMuted}
+            value={password}
+            onChangeText={setPassword}
+            secureTextEntry
+            autoComplete="password"
+            returnKeyType="done"
+            onSubmitEditing={handleEmailLogin}
+          />
+
+          {/* Sign in button */}
+          <TouchableOpacity
+            style={[s.signInBtn, loading && s.btnDisabled]}
+            onPress={handleEmailLogin}
             disabled={loading}
             activeOpacity={0.85}
           >
             {loading
               ? <ActivityIndicator color="#fff" />
-              : <Text style={styles.buttonText}>Sign In</Text>
+              : <Text style={s.signInBtnText}>Sign in</Text>
             }
           </TouchableOpacity>
 
-          <TouchableOpacity 
-            onPress={() => router.push('/(auth)/register')} 
-            style={styles.registerLink}
+          {/* Register link */}
+          <TouchableOpacity
+            style={s.registerLink}
+            onPress={() => router.push('/(auth)/register')}
+            activeOpacity={0.7}
           >
-            <Text style={styles.registerLinkText}>
-              Don't have an account? <Text style={{ color: Colors.primary, fontWeight: '600' }}>Create one</Text>
+            <Text style={s.registerLinkText}>
+              No account?{' '}
+              <Text style={{ color: Colors.primary, fontWeight: '600' }}>
+                Create one free
+              </Text>
             </Text>
           </TouchableOpacity>
 
-          <Text style={styles.terms}>
-            By signing in, you agree to our Terms of Service and Privacy Policy.
-          </Text>
         </View>
-
       </ScrollView>
     </KeyboardAvoidingView>
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flexGrow: 1, padding: Spacing.lg, paddingTop: 80, paddingBottom: Spacing.xxl },
-  header: { marginBottom: Spacing.xl, alignItems: 'center' },
-  title: { ...Typography.h1, color: '#fff', textAlign: 'center' },
-  subtitle: { ...Typography.body, color: 'rgba(255,255,255,0.75)', marginTop: 8, textAlign: 'center' },
-  card: {
-    backgroundColor: Colors.surface, borderRadius: Radius.xl,
-    padding: Spacing.lg, ...Shadow.lg,
+// ─── Styles ───────────────────────────────────────────────────────────────────
+
+const s = StyleSheet.create({
+  container:   { flexGrow: 1, padding: Spacing.lg, paddingTop: 70, paddingBottom: 40 },
+
+  hero:        { alignItems: 'center', marginBottom: Spacing.xl },
+  logo:        { fontSize: 64 },
+  appName:     { ...Typography.h1, color: '#fff', marginTop: Spacing.sm },
+  tagline:     { ...Typography.body, color: 'rgba(255,255,255,0.75)', marginTop: 4 },
+
+  card:        {
+    backgroundColor: Colors.surface,
+    borderRadius: Radius.xl,
+    padding: Spacing.lg,
+    ...Shadow.lg,
   },
-  button: {
-    backgroundColor: Colors.primary, borderRadius: Radius.md,
-    paddingVertical: 15, alignItems: 'center', marginTop: Spacing.md,
+
+  googleBtn:   {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+    backgroundColor: '#fff',
+    borderRadius: Radius.md, paddingVertical: 14,
+    borderWidth: 1, borderColor: Colors.border,
+    gap: Spacing.sm,
+    ...Shadow.sm,
   },
-  buttonText: { ...Typography.h4, color: '#fff' },
-  registerLink: { alignItems: 'center', marginTop: Spacing.md },
-  registerLinkText: { ...Typography.bodySmall, color: Colors.textSecondary },
-  terms: { ...Typography.caption, color: Colors.textMuted, textAlign: 'center', marginTop: Spacing.lg },
+  googleIcon:  { fontSize: 18, fontWeight: '700', color: '#4285F4' },
+  googleBtnText: { ...Typography.h4, color: Colors.textPrimary },
+
+  divider:     { flexDirection: 'row', alignItems: 'center', marginVertical: Spacing.md, gap: Spacing.sm },
+  dividerLine: { flex: 1, height: 1, backgroundColor: Colors.border },
+  dividerText: { ...Typography.caption, color: Colors.textMuted },
+
+  label:       { ...Typography.label, color: Colors.textSecondary, marginBottom: 6 },
+  input:       {
+    borderWidth: 1, borderColor: Colors.border,
+    borderRadius: Radius.md,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Platform.OS === 'ios' ? 14 : 11,
+    ...Typography.body, color: Colors.textPrimary,
+    marginBottom: Spacing.md,
+  },
+
+  signInBtn:   {
+    backgroundColor: Colors.primary,
+    borderRadius: Radius.md,
+    paddingVertical: 15,
+    alignItems: 'center',
+    marginTop: Spacing.xs,
+    ...Shadow.sm,
+  },
+  signInBtnText: { ...Typography.h4, color: '#fff' },
+
+  btnDisabled:  { opacity: 0.55 },
+
+  registerLink: { alignItems: 'center', marginTop: Spacing.md, paddingVertical: 6 },
+  registerLinkText: { ...Typography.body, color: Colors.textSecondary },
+
+  securityNote: {
+    ...Typography.caption, color: 'rgba(255,255,255,0.6)',
+    textAlign: 'center', marginTop: Spacing.lg,
+  },
 });

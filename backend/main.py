@@ -24,6 +24,7 @@ from .rag_engine import VetRAGEngine
 
 # Route groups
 from .routes        import auth_router, query_router, health_router, set_rag_engine
+from .google_auth   import google_auth_router
 from .vision_routes import vision_router
 from .admin_routes  import admin_router
 from .upload_routes import upload_router
@@ -46,7 +47,7 @@ def rate_limit_key(request: Request) -> str:
             payload = jose_jwt.decode(
                 token, settings.secret_key,
                 algorithms=[settings.algorithm],
-                options={"verify_exp": False},
+                options={"verify_exp": False},  # safe: only used for rate-limit key routing, not auth
             )
             return f"user:{payload.get('sub', get_remote_address(request))}"
         except Exception:
@@ -140,6 +141,7 @@ async def global_exception_handler(request: Request, exc: Exception):
 
 # Core
 app.include_router(auth_router)        # /api/auth/*
+app.include_router(google_auth_router)  # /api/auth/google
 app.include_router(query_router)       # /api/query/*
 app.include_router(health_router)      # /api/health/*
 

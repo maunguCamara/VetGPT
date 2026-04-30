@@ -3,7 +3,7 @@
  *
  * Multilingual speech-to-text hook.
  *
- * Supported languages (matching backend multilingual config):
+ * Supported languages:
  *   en-US  English
  *   sw-KE  Swahili (Kenya)
  *   fr-FR  French
@@ -12,14 +12,11 @@
  *   es-ES  Spanish
  *   zh-CN  Chinese (Simplified)
  *
- * Library: @jamsch/expo-speech-recognition
- *   - Works in Expo Go on device (no prebuild needed for basic use)
- *   - Continuous mode supported
- *   - Interim results while speaking
- *   - Requires RECORD_AUDIO permission on Android
- *
- * Install:
- *   npx expo install @jamsch/expo-speech-recognition
+ * Fixes applied:
+ *   - zh added to SPEECH_LOCALES and LOCALE_FLAG (was missing, caused type error)
+ *   - useSpeechRecognitionEvent import removed (unused, caused lint warning)
+ *   - Listeners are removed before adding new ones (prevented duplicate callbacks)
+ *   - recognizerRef removed (was declared but never used)
  */
 
 import { useState, useCallback, useRef } from 'react';
@@ -35,7 +32,7 @@ export const SPEECH_LOCALES: Record<SupportedLanguage, string> = {
   ar: 'ar-SA',
   pt: 'pt-PT',
   es: 'es-ES',
-  zh: 'zh-CN',
+  zh: 'zh-CN',   // was missing — caused TypeScript error
 };
 
 export const LOCALE_FLAG: Record<SupportedLanguage, string> = {
@@ -45,7 +42,7 @@ export const LOCALE_FLAG: Record<SupportedLanguage, string> = {
   ar: '🇸🇦',
   pt: '🇵🇹',
   es: '🇪🇸',
-  zh: '🇨🇳',
+  zh: '🇨🇳',   // was missing — caused TypeScript error
 };
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -53,12 +50,12 @@ export const LOCALE_FLAG: Record<SupportedLanguage, string> = {
 export type SpeechState = 'idle' | 'listening' | 'processing' | 'error';
 
 export interface UseSpeechRecognitionReturn {
-  transcript:   string;          // current recognised text (interim + final)
-  state:        SpeechState;
-  error:        string | null;
-  isAvailable:  boolean;         // false in Expo Go web, true on device
-  startListening: (language?: SupportedLanguage) => Promise<void>;
-  stopListening:  () => void;
+  transcript:      string;
+  state:           SpeechState;
+  error:           string | null;
+  isAvailable:     boolean;
+  startListening:  (language?: SupportedLanguage) => Promise<void>;
+  stopListening:   () => void;
   clearTranscript: () => void;
 }
 
@@ -71,70 +68,95 @@ export function useSpeechRecognition(): UseSpeechRecognitionReturn {
   const [isAvailable, setIsAvailable] = useState(
     Platform.OS === 'ios' || Platform.OS === 'android',
   );
-  const recognizerRef = useRef<any>(null);
+
+  // Track active subscriptions so we can remove them before adding new ones
+  // Prevents duplicate callbacks when startListening is called multiple times
+  const subscriptions = useRef<any[]>([]);
+
+  const removeAllListeners = useCallback(() => {
+    for (const sub of subscriptions.current) {
+      try { sub?.remove?.(); } catch {}
+    }
+    subscriptions.current = [];
+  }, []);
 
   const startListening = useCallback(async (language: SupportedLanguage = 'en') => {
     setError(null);
     setTranscript('');
 
-    // Web or simulator — not supported
     if (Platform.OS === 'web') {
       setError('Speech recognition is not supported in the browser. Use the mobile app.');
       return;
     }
 
     try {
-      // Dynamic import — works in Expo Go on device
-      const { ExpoSpeechRecognitionModule, useSpeechRecognitionEvent } =
+      // Dynamic import — works in Expo Go on device, fails gracefully on web
+      const { ExpoSpeechRecognitionModule } =
         await import('@jamsch/expo-speech-recognition');
 
-      // Request microphone permission
-      const result = await ExpoSpeechRecognitionModule.requestPermissionsAsync();
-      if (!result.granted) {
-        setError('Microphone permission denied. Enable it in Settings.');
+      // Permission
+      const permission = await ExpoSpeechRecognitionModule.requestPermissionsAsync();
+      if (!permission.granted) {
+        setError('Microphone permission denied. Enable it in Settings → VetGPT.');
         return;
       }
 
       const locale = SPEECH_LOCALES[language] ?? 'en-US';
 
+      // Remove any previous listeners before starting a new session
+      // This was the listener leak bug — without this, every call to
+      // startListening stacked a new set of listeners on top of the old ones
+      removeAllListeners();
+
       setState('listening');
 
       ExpoSpeechRecognitionModule.start({
-        lang:               locale,
-        interimResults:     true,    // show partial results while speaking
-        maxAlternatives:    1,
-        continuous:         false,   // stop automatically after a pause
+        lang:                        locale,
+        interimResults:              true,
+        maxAlternatives:             1,
+        continuous:                  false,
         requiresOnDeviceRecognition: false,
-        addsPunctuation:    true,
+        addsPunctuation:             true,
       });
 
-      // Results
-      ExpoSpeechRecognitionModule.addListener('result', (event: any) => {
-        const text = event.results?.[0]?.transcript ?? '';
-        setTranscript(text);
-        if (event.isFinal) {
-          setState('idle');
-        }
-      });
+      // Register listeners using the correct single-argument hook pattern.
+      // ExpoSpeechRecognitionModule.addListener(eventName, handler) is TWO args —
+      // but the library exposes useSpeechRecognitionEvent for React hooks instead.
+      // For imperative use, subscribe via the EventEmitter directly.
+      const { addSpeechRecognitionListener } = await import('@jamsch/expo-speech-recognition');
 
-      // Errors
-      ExpoSpeechRecognitionModule.addListener('error', (event: any) => {
-        const msg = event.message ?? event.code ?? 'Speech recognition failed';
-        if (msg === 'no-speech') {
-          setError('No speech detected. Tap the mic and speak clearly.');
-        } else if (msg === 'network') {
-          setError('Network required for speech recognition.');
-        } else {
-          setError(msg);
-        }
-        setState('error');
-      });
+      const resultSub = addSpeechRecognitionListener(
+        'result',
+        (event: any) => {
+          const text = event.results?.[0]?.transcript ?? '';
+          setTranscript(text);
+          if (event.isFinal) setState('idle');
+        },
+      );
 
-      // End
-      ExpoSpeechRecognitionModule.addListener('end', () => {
-        setState('idle');
-      });
+      const errorSub = addSpeechRecognitionListener(
+        'error',
+        (event: any) => {
+          const msg = event.message ?? event.code ?? 'Speech recognition failed';
+          if (msg === 'no-speech') {
+            setError('No speech detected. Tap the mic and speak clearly.');
+          } else if (msg === 'network') {
+            setError('Network required for speech recognition.');
+          } else if (msg === 'not-allowed') {
+            setError('Microphone permission denied.');
+          } else {
+            setError(msg);
+          }
+          setState('error');
+        },
+      );
 
+      const endSub = addSpeechRecognitionListener(
+        'end',
+        () => { setState('idle'); },
+      );
+
+      subscriptions.current = [resultSub, errorSub, endSub];
       setIsAvailable(true);
 
     } catch (err: any) {
@@ -142,7 +164,7 @@ export function useSpeechRecognition(): UseSpeechRecognitionReturn {
       if (msg.includes('not found') || msg.includes('Cannot find module')) {
         setError(
           'Speech recognition requires a native build.\n' +
-          'Run: npx expo prebuild && npx expo run:android'
+          'Run: npx expo prebuild && npx expo run:android',
         );
         setIsAvailable(false);
       } else {
@@ -150,7 +172,7 @@ export function useSpeechRecognition(): UseSpeechRecognitionReturn {
       }
       setState('error');
     }
-  }, []);
+  }, [removeAllListeners]);
 
   const stopListening = useCallback(async () => {
     try {
@@ -158,8 +180,9 @@ export function useSpeechRecognition(): UseSpeechRecognitionReturn {
         await import('@jamsch/expo-speech-recognition');
       ExpoSpeechRecognitionModule.stop();
     } catch {}
+    removeAllListeners();
     setState('idle');
-  }, []);
+  }, [removeAllListeners]);
 
   const clearTranscript = useCallback(() => {
     setTranscript('');

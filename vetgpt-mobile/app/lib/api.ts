@@ -29,7 +29,7 @@ export interface Citation {
   excerpt: string;
 }
 
-export type SupportedLanguage = 'en' | 'sw' | 'fr' | 'ar' | 'pt' | 'es';
+export type SupportedLanguage = 'en' | 'sw' | 'fr' | 'ar' | 'pt' | 'es' | 'zh';
 
 export const LANGUAGE_LABELS: Record<string, string> = {
   en: 'English', sw: 'Kiswahili', fr: 'Français',

@@ -13,6 +13,46 @@ version: "3.9"
 services:
 
   # ── FastAPI Backend ──────────────────────────────────────────────────────────
+  db:
+    image: postgres:16-alpine
+    container_name: vetgpt_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB:       vetgpt
+      POSTGRES_USER:     vetgpt
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-changeme}
+    
+  # ── Telegram Bot ────────────────────────────────────────────────────────────
+  telegram-bot:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: runtime
+    container_name: vetgpt_telegram
+    restart: unless-stopped
+    command: ["python", "-m", "bots.telegram_bot"]
+    depends_on:
+      api:
+        condition: service_started
+    environment:
+      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
+      - TELEGRAM_WEBHOOK_URL=${TELEGRAM_WEBHOOK_URL}
+      - TELEGRAM_WEBHOOK_PORT=${TELEGRAM_WEBHOOK_PORT:-8443}
+      - TELEGRAM_WEBHOOK_SECRET=${TELEGRAM_WEBHOOK_SECRET}
+      - VETGPT_API_URL=http://api:8000
+      - BOT_API_KEY=${BOT_API_KEY}
+    ports:
+      - "8443:8443"
+    profiles: ["production", "bots"]
+
+volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "vetgpt"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
   api:
     build:
       context: .
@@ -22,8 +62,13 @@ services:
     restart: unless-stopped
     ports:
       - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
     environment:
-      - DATABASE_URL=sqlite+aiosqlite:///./data/vetgpt.db
+      - DATABASE_URL=postgresql+asyncpg://vetgpt:${POSTGRES_PASSWORD:-changeme}@db:5432/vetgpt
       - CHROMA_DB_PATH=./data/chroma_db
       - EMBEDDING_PROVIDER=${EMBEDDING_PROVIDER:-local}
       - LLM_PROVIDER=${LLM_PROVIDER:-anthropic}
@@ -40,8 +85,6 @@ services:
       - DEBUG=false
     volumes:
       - vetgpt_data:/app/data
-    depends_on:
-      - redis
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/api/health"]
       interval: 30s
@@ -84,6 +127,7 @@ services:
 
 volumes:
   vetgpt_data:
+  postgres_data:
   redis_data:
   caddy_data:
   caddy_config:

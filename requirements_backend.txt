@@ -35,3 +35,7 @@ google-cloud-documentai==2.24.0   # Document AI OCR
 pydicom==2.4.4                    # DICOM X-ray file support
 Pillow==10.4.0                    # Image processing
 numpy==1.26.4                     # Pixel array manipulation
+
+# Bots
+python-telegram-bot==21.3          # Telegram bot
+twilio==9.2.3                      # WhatsApp via Twilio

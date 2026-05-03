@@ -18,6 +18,7 @@ from typing import AsyncGenerator
 
 import anthropic
 from openai import AsyncOpenAI
+import httpx
 
 from .config import get_settings
 from ingestion.embedder import VetVectorStore
@@ -198,13 +199,29 @@ class VetRAGEngine:
         self._init_llm_clients()
 
     def _init_llm_clients(self):
-        """Initialise LLM clients based on config."""
+        """
+        Initialise LLM clients based on config.
+
+        Priority order:
+          1. Ollama  (local, free — set LLM_PROVIDER=ollama in .env)
+          2. Anthropic Claude (cloud)
+          3. OpenAI GPT-4o   (cloud)
+
+        Ollama setup:
+          curl -fsSL https://ollama.ai/install.sh | sh
+          ollama pull qwen2.5:14b        # recommended
+          ollama pull qwen2.5:7b         # lighter (4.5 GB)
+          Set in .env: LLM_PROVIDER=ollama
+                       OLLAMA_MODEL=qwen2.5:14b
+                       OLLAMA_BASE_URL=http://localhost:11434
+        """
         if settings.anthropic_api_key:
             self._anthropic = anthropic.AsyncAnthropic(
                 api_key=settings.anthropic_api_key
             )
         if settings.openai_api_key:
             self._openai = AsyncOpenAI(api_key=settings.openai_api_key)
+        # Ollama client is stateless (plain HTTP) — no init object needed
 
     # ──────────────────────────────────────────
     # Main query method
@@ -329,6 +346,11 @@ class VetRAGEngine:
                 if delta:
                     yield delta
 
+        elif settings.llm_provider == "ollama":
+            # Ollama streaming — server-sent events from local Ollama server
+            async for token in self._stream_ollama(prompt):
+                yield token
+
     # ──────────────────────────────────────────
     # Private: LLM generation
     # ──────────────────────────────────────────
@@ -364,16 +386,77 @@ class VetRAGEngine:
             )
             return response.choices[0].message.content, settings.llm_model_openai
 
+        # Ollama — local LLM, no API key needed
+        if settings.llm_provider == "ollama":
+            return await self._generate_ollama(prompt)
+
         raise RuntimeError(
-            "No LLM client available. Set ANTHROPIC_API_KEY or OPENAI_API_KEY in .env"
+            "No LLM configured. Options:\n"
+            "  Local (free): set LLM_PROVIDER=ollama, run: ollama pull qwen2.5:14b\n"
+            "  Cloud: set ANTHROPIC_API_KEY or OPENAI_API_KEY in .env"
         )
+
+    async def _generate_ollama(self, prompt: str) -> tuple[str, str]:
+        """Call local Ollama server (non-streaming)."""
+        model    = settings.ollama_model
+        base_url = settings.ollama_base_url
+
+        payload  = {
+            "model":  model,
+            "prompt": f"{SYSTEM_PROMPT}\n\n{prompt}",
+            "stream": False,
+            "options": {
+                "temperature":    settings.llm_temperature,
+                "num_predict":    settings.llm_max_tokens,
+                "num_ctx":        8192,
+                "repeat_penalty": 1.1,
+            },
+        }
+        async with httpx.AsyncClient(timeout=120) as client:
+            resp = await client.post(f"{base_url}/api/generate", json=payload)
+            resp.raise_for_status()
+            data = resp.json()
+            return data.get("response", ""), model
+
+    async def _stream_ollama(self, prompt: str):
+        """Stream tokens from local Ollama server."""
+        model    = settings.ollama_model
+        base_url = settings.ollama_base_url
+
+        payload  = {
+            "model":  model,
+            "prompt": f"{SYSTEM_PROMPT}\n\n{prompt}",
+            "stream": True,
+            "options": {
+                "temperature":    settings.llm_temperature,
+                "num_predict":    settings.llm_max_tokens,
+                "num_ctx":        8192,
+                "repeat_penalty": 1.1,
+            },
+        }
+        async with httpx.AsyncClient(timeout=120) as client:
+            async with client.stream("POST", f"{base_url}/api/generate", json=payload) as resp:
+                resp.raise_for_status()
+                async for line in resp.aiter_lines():
+                    if line.strip():
+                        try:
+                            chunk = __import__("json").loads(line)
+                            token = chunk.get("response", "")
+                            if token:
+                                yield token
+                            if chunk.get("done"):
+                                break
+                        except Exception:
+                            continue
 
     def health(self) -> dict:
         """Return engine health status."""
         db_stats = self._store.stats()
         return {
-            "chroma_chunks": db_stats["total_chunks"],
-            "llm_provider": settings.llm_provider,
+            "chroma_chunks":   db_stats["total_chunks"],
+            "llm_provider":    settings.llm_provider,
             "anthropic_ready": self._anthropic is not None,
-            "openai_ready": self._openai is not None,
+            "openai_ready":    self._openai is not None,
+            "ollama_ready":    settings.llm_provider == "ollama",
+            "ollama_model":    settings.ollama_model if settings.llm_provider == "ollama" else None,
         }

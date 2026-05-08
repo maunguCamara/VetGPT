@@ -26,13 +26,15 @@ class Settings(BaseSettings):
     database_url: str = "sqlite+aiosqlite:///./data/vetgpt.db"
 
     # ── LLM ───────────────────────────────────────────────────────────────────
-    llm_provider:        str   = "anthropic"           # anthropic | openai
+    llm_provider:        str   = "ollama"           # anthropic | openai | ollama
     anthropic_api_key:   str   = ""
     openai_api_key:      str   = ""
     llm_model_anthropic: str   = "claude-sonnet-4-5"
     llm_model_openai:    str   = "gpt-4o"
+    ollama_model:        str   = "qwen2.5:14b"
     llm_max_tokens:      int   = 1500
     llm_temperature:     float = 0.1
+    ollama_base_url:     str   = "http://localhost:11434"
 
     # ── RAG ───────────────────────────────────────────────────────────────────
     rag_top_k:             int   = 5

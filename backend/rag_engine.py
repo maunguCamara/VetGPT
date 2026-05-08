@@ -412,7 +412,7 @@ class VetRAGEngine:
                 "repeat_penalty": 1.1,
             },
         }
-        async with httpx.AsyncClient(timeout=120) as client:
+        async with httpx.AsyncClient(timeout=360) as client:  # 6 min — covers cold model load
             resp = await client.post(f"{base_url}/api/generate", json=payload)
             resp.raise_for_status()
             data = resp.json()
@@ -434,7 +434,7 @@ class VetRAGEngine:
                 "repeat_penalty": 1.1,
             },
         }
-        async with httpx.AsyncClient(timeout=120) as client:
+        async with httpx.AsyncClient(timeout=360) as client:  # 6 min — covers cold model load
             async with client.stream("POST", f"{base_url}/api/generate", json=payload) as resp:
                 resp.raise_for_status()
                 async for line in resp.aiter_lines():
@@ -448,6 +448,34 @@ class VetRAGEngine:
                                 break
                         except Exception:
                             continue
+
+    async def warmup(self) -> None:
+        """
+        Pre-warm the Ollama model at startup.
+        Sends a minimal prompt so the model loads into GPU/RAM before
+        the first real user query. Prevents the 3-4 minute cold start.
+        Called from main.py lifespan after engine is created.
+        """
+        if settings.llm_provider != "ollama":
+            return
+        try:
+            print(f"⏳ Warming up Ollama ({settings.ollama_model}) — this may take 2-3 minutes on first load...")
+            async with httpx.AsyncClient(timeout=360) as client:
+                resp = await client.post(
+                    f"{settings.ollama_base_url}/api/generate",
+                    json={
+                        "model":  settings.ollama_model,
+                        "prompt": "Ready.",
+                        "stream": False,
+                        "options": {"num_predict": 1},   # generate only 1 token — just loads model
+                    },
+                )
+                if resp.status_code == 200:
+                    print(f"✓ Ollama ({settings.ollama_model}) warmed up and ready.")
+                else:
+                    print(f"⚠️  Ollama warmup returned {resp.status_code} — queries may be slow on first use.")
+        except Exception as e:
+            print(f"⚠️  Ollama warmup failed: {e} — queries will be slow on first use.")
 
     def health(self) -> dict:
         """Return engine health status."""

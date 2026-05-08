@@ -28,7 +28,7 @@ from .google_auth   import google_auth_router
 from .vision_routes import vision_router
 from .admin_routes  import admin_router
 from .upload_routes import upload_router
-from ..bots.whatsapp_bot import whatsapp_router
+from bots.whatsapp_bot import whatsapp_router
 from .billing       import billing_router
 from .finetune      import finetune_router
 from .sync_routes   import sync_router

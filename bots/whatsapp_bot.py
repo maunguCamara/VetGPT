@@ -40,6 +40,8 @@ Install:
 
 import os
 import logging
+from dotenv import load_dotenv
+load_dotenv()
 import hashlib
 import hmac
 import httpx
@@ -54,7 +56,7 @@ log = logging.getLogger(__name__)
 TWILIO_ACCOUNT_SID    = os.getenv("TWILIO_ACCOUNT_SID",    "")
 TWILIO_AUTH_TOKEN     = os.getenv("TWILIO_AUTH_TOKEN",     "")
 TWILIO_WHATSAPP_FROM  = os.getenv("TWILIO_WHATSAPP_FROM",  "whatsapp:+14155238886")  # Twilio sandbox
-VETGPT_API_URL        = os.getenv("VETGPT_API_URL",        "http://localhost:8009")
+VETGPT_API_URL        = os.getenv("VETGPT_API_URL",        "http://localhost:8000")
 BOT_API_KEY           = os.getenv("BOT_API_KEY",           "")
 
 SUPPORTED_LANGUAGES = {

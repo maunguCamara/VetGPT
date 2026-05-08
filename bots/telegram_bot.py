@@ -36,6 +36,8 @@ import asyncio
 import logging
 import httpx
 from typing import Optional
+from dotenv import load_dotenv
+load_dotenv()  # load .env from project root
 
 from telegram import (
     Update, InlineKeyboardButton, InlineKeyboardMarkup,
@@ -56,7 +58,7 @@ log = logging.getLogger(__name__)
 # ─── Config ───────────────────────────────────────────────────────────────────
 
 TELEGRAM_BOT_TOKEN  = os.getenv("TELEGRAM_BOT_TOKEN",  "")
-VETGPT_API_URL      = os.getenv("VETGPT_API_URL",       "http://localhost:8009")
+VETGPT_API_URL      = os.getenv("VETGPT_API_URL",       "http://localhost:8000")
 TELEGRAM_WEBHOOK_URL = os.getenv("TELEGRAM_WEBHOOK_URL", "")  # set for production
 BOT_API_KEY         = os.getenv("BOT_API_KEY",          "")   # optional: dedicated bot user JWT
 

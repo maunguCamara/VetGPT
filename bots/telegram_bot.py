@@ -36,7 +36,7 @@ import asyncio
 import logging
 import httpx
 from typing import Optional
-from dotenv import load_dotenv
+
 from telegram import (
     Update, InlineKeyboardButton, InlineKeyboardMarkup,
     BotCommand, MenuButtonCommands,
@@ -47,8 +47,6 @@ from telegram.ext import (
 )
 from telegram.constants import ParseMode, ChatAction
 
-load_dotenv() 
-
 logging.basicConfig(
     format="%(asctime)s [TelegramBot] %(levelname)s %(message)s",
     level=logging.INFO,
@@ -57,8 +55,8 @@ log = logging.getLogger(__name__)
 
 # ─── Config ───────────────────────────────────────────────────────────────────
 
-TELEGRAM_BOT_TOKEN  = os.getenv("TELEGRAM_BOT_TOKEN")
-VETGPT_API_URL      = os.getenv("VETGPT_API_URL",       "http://localhost:8000")
+TELEGRAM_BOT_TOKEN  = os.getenv("TELEGRAM_BOT_TOKEN",  "")
+VETGPT_API_URL      = os.getenv("VETGPT_API_URL",       "http://localhost:8009")
 TELEGRAM_WEBHOOK_URL = os.getenv("TELEGRAM_WEBHOOK_URL", "")  # set for production
 BOT_API_KEY         = os.getenv("BOT_API_KEY",          "")   # optional: dedicated bot user JWT
 
@@ -130,7 +128,7 @@ async def query_vetgpt(
         "language": language,
     }
 
-    async with httpx.AsyncClient(timeout=60) as client:
+    async with httpx.AsyncClient(timeout=360) as client:  # 6 min — matches Ollama cold start
         resp = await client.post(
             f"{VETGPT_API_URL}/api/query",
             json=payload,
@@ -321,7 +319,8 @@ async def handle_message(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> None
 
     except httpx.TimeoutException:
         await update.message.reply_text(
-            "⏱ The query took too long. Please try a shorter question."
+            "⏳ The AI model is loading — this only happens once after restart.\n\n"
+            "Please resend your question in 30 seconds and it will respond immediately."
         )
     except httpx.HTTPStatusError as e:
         if e.response.status_code == 429:

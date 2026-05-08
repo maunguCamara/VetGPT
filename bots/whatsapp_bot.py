@@ -54,7 +54,7 @@ log = logging.getLogger(__name__)
 TWILIO_ACCOUNT_SID    = os.getenv("TWILIO_ACCOUNT_SID",    "")
 TWILIO_AUTH_TOKEN     = os.getenv("TWILIO_AUTH_TOKEN",     "")
 TWILIO_WHATSAPP_FROM  = os.getenv("TWILIO_WHATSAPP_FROM",  "whatsapp:+14155238886")  # Twilio sandbox
-VETGPT_API_URL        = os.getenv("VETGPT_API_URL",        "http://localhost:8000")
+VETGPT_API_URL        = os.getenv("VETGPT_API_URL",        "http://localhost:8009")
 BOT_API_KEY           = os.getenv("BOT_API_KEY",           "")
 
 SUPPORTED_LANGUAGES = {
@@ -124,7 +124,7 @@ async def query_vetgpt(question: str, language: str = "en") -> dict:
     if BOT_API_KEY:
         headers["Authorization"] = f"Bearer {BOT_API_KEY}"
 
-    async with httpx.AsyncClient(timeout=60) as client:
+    async with httpx.AsyncClient(timeout=360) as client:  # 6 min — matches Ollama cold start
         resp = await client.post(
             f"{VETGPT_API_URL}/api/query",
             json={"query": question, "top_k": 5, "language": language},
@@ -307,7 +307,7 @@ async def whatsapp_webhook(
     except httpx.TimeoutException:
         await send_whatsapp(
             sender,
-            "⏱ Query took too long. Try a shorter, more specific question."
+            "⏳ AI model is loading (first query only). Please resend in 30 seconds."
         )
     except httpx.HTTPStatusError as e:
         if e.response.status_code == 429:

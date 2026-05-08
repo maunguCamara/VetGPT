@@ -28,6 +28,7 @@ from .google_auth   import google_auth_router
 from .vision_routes import vision_router
 from .admin_routes  import admin_router
 from .upload_routes import upload_router
+from ..bots.whatsapp_bot import whatsapp_router
 from .billing       import billing_router
 from .finetune      import finetune_router
 from .sync_routes   import sync_router
@@ -71,6 +72,8 @@ async def lifespan(app: FastAPI):
     set_rag_engine(engine)
     h = engine.health()
     print(f"✓ RAG engine — {h['chroma_chunks']:,} chunks | LLM: {h['llm_provider']}")
+    # Pre-warm Ollama so first user query is fast
+    await engine.warmup()
     print("✓ All systems ready")
     yield
     print("VetGPT API shutting down...")
@@ -157,6 +160,7 @@ app.include_router(billing_router)     # /api/billing/*
 
 # PDF upload
 app.include_router(upload_router)      # /api/manuals/*
+app.include_router(whatsapp_router)    # /bots/whatsapp/*
 
 # Mobile offline sync
 app.include_router(sync_router)        # /api/sync/*

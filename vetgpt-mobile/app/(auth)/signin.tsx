@@ -17,7 +17,7 @@ import {
   ActivityIndicator, KeyboardAvoidingView, Platform,
   Alert, ScrollView,
 } from 'react-native';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { router } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
 import * as AuthSession from 'expo-auth-session';
@@ -47,21 +47,23 @@ export default function LoginScreen() {
   const [password, setPassword] = useState('');
   const [loading, setLoading]   = useState(false);
   const [gLoading, setGLoading] = useState(false);
-  const { setUser } = useAuthStore();
-
+  const { setUser, isAuthenticated } = useAuthStore();
+   const hasNavigated = useRef(false);
   // Google OAuth hook
   const [request, response, promptAsync] = Google.useAuthRequest(GOOGLE_CLIENT_IDS);
 
+    //useEffect(() => {
+   // if (isAuthenticated && !hasNavigated.current) {
+    //  hasNavigated.current = true;
+   //   router.replace('/(tabs)/chat');
+   // }
+  //}, [isAuthenticated]);
   // Handle Google OAuth response
   useEffect(() => {
     if (response?.type === 'success') {
-      const { authentication } = response;
-      if (authentication?.idToken) {
-        handleGoogleToken(authentication.idToken);
-      } else if (authentication?.accessToken) {
-        // Fallback: fetch ID token using access token
-        fetchGoogleIdToken(authentication.accessToken);
-      }
+      const idToken = response.authentication?.idToken;
+      if (idToken) handleGoogleToken(idToken);
+      else setGLoading(false);
     } else if (response?.type === 'error') {
       setGLoading(false);
       Alert.alert('Google Sign-In failed', response.error?.message ?? 'Try again.');
@@ -90,8 +92,9 @@ export default function LoginScreen() {
     setGLoading(true);
     try {
       const data = await googleSignIn(idToken);
+      //API returns {access_token, user: {id, email, fullname, tier
       setUser(data.user);
-      router.replace('/(tabs)/chat');
+      setTimeout(() => router.replace('/(tabs)/chat'), 100);
     } catch (err: any) {
       Alert.alert(
         'Google Sign-In failed',
@@ -131,7 +134,7 @@ export default function LoginScreen() {
     try {
       const data = await loginUser(emailTrimmed, password);
       setUser(data.user);
-      router.replace('/(tabs)/chat');
+      setTimeout(() => router.replace('/(tabs)/chat'), 100);
     } catch (err: any) {
       const msg = err.message ?? '';
       if (msg.includes('401') || msg.includes('Incorrect')) {

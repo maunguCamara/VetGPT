@@ -595,3 +595,6 @@ docker logs vetgpt_api -f
 ```
 
 WhatsApp webhook runs inside the main API container — no separate service needed.
+
+
+Telegram bot link: https://t.me/vetref_bot

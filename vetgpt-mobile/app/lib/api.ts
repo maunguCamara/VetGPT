@@ -77,6 +77,7 @@ export async function loginUser(email: string, password: string): Promise<any> {
   }
   const data = await res.json();
   await setItem(TOKEN_KEY, data.access_token);
+  console.log('Token stored:', await getStoredToken());
   return data;
 }
 

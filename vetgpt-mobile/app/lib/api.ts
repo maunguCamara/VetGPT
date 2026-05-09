@@ -81,6 +81,21 @@ export async function loginUser(email: string, password: string): Promise<any> {
   return data;
 }
 
+export async function isOnline(): Promise<boolean> {
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 5000);
+    const res = await fetch('https://dns.google/resolve?name=google.com&type=A', {
+      method: 'HEAD',
+      signal: controller.signal,
+    });
+    clearTimeout(timeout);
+    return res.status < 500;
+  } catch {
+    return false;
+  }
+}
+
 export async function register(email: string, password: string, fullName: string): Promise<any> {
   const data = await req('/api/auth/register', {
     method: 'POST',

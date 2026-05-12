@@ -16,10 +16,12 @@ import { Platform } from 'react-native';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { View, ActivityIndicator } from 'react-native';
 import * as SplashScreen from 'expo-splash-screen';
 import { useAuthStore, useAppStore } from '../app/store';
 import { getStoredToken, getMe } from '../app/lib/api';
 import { Colors } from '../constants/theme';
+import { is } from 'date-fns/locale';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -85,7 +87,9 @@ async function runDeltaSync(): Promise<void> {
 export default function RootLayout() {
   const { setUser }   = useAuthStore();
   const { setOnline } = useAppStore();
-
+  const { isAuthenticated, isLoading } = useAuthStore();
+  
+  
   // 1. Restore auth session on launch
   useEffect(() => {
     async function init() {
@@ -124,15 +128,22 @@ export default function RootLayout() {
     const interval = setInterval(checkNetwork, 15000);
     return () => clearInterval(interval);
   }, []);
-
-  return (
+  
+  if (isLoading) {
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: Colors.background }}>
+        <ActivityIndicator size="large" color={Colors.primary}/>
+        </View>
+    );
+  }
+          return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <StatusBar style="light" backgroundColor={Colors.primary} />
       <Stack screenOptions={{ headerShown: false }}>
-        <Stack.Screen name="index"          options={{ animation: 'none' }} />
-        <Stack.Screen name="(auth)"         options={{ animation: 'fade' }} />
+        {isAuthenticated ? (
         <Stack.Screen name="(tabs)"         options={{ animation: 'fade' }} />
-      <Stack.Screen name="(modals)"       options={{ presentation: 'modal' }} />
+        ) : (<Stack.Screen name="(auth)"         options={{ animation: 'fade' }} />
+        )}<Stack.Screen name="(modals)"       options={{ presentation: 'modal' }} />
        <Stack.Screen name="download-model" options={{ presentation: 'modal' }} />
   </Stack>
   </GestureHandlerRootView>

@@ -5,9 +5,16 @@ import { useAuthStore, useAppStore } from '../store';
 
 
 export default function TabLayout() {
-  const { isAuthenticated, isLoading } = useAuthStore();
-  if (isLoading) return null;
-  if (!isAuthenticated) return <Redirect href="/(auth)/signin" />;
+  //const isAuthenticated = useAuthStore(state => state.isAuthenticated);
+  //const isLoading  = useAuthStore(state => state.isLoading);
+  //if (isLoading) {
+  //  console.log('[Tablayout] render - is Authenticated:', isAuthenticated, 'isLoading:', isLoading);
+ //   return null;
+ // }
+ // if (!isAuthenticated) {
+ //   console.log('[Tablayout] Not authenticated, redirecting to sign in');
+ //   return <Redirect href="/(auth)/signin" />;
+ // }
   return (
     <Tabs>  
       

@@ -54,21 +54,18 @@ export default function ProfileScreen() {
 
   const isPremium = user?.tier === 'premium' || user?.tier === 'clinic';
 
-  async function handleLogout() {
-    Alert.alert('Sign out', 'Are you sure you want to sign out?', [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Sign out',
-        style: 'destructive',
-        onPress: async () => {
-          await logout();
-          storeLogout();
-          router.replace('/(auth)/signin');
-        },
-      },
-    ]);
+async function handleLogout() {
+  try {
+    console.log('Logging out directly...');
+    await logout();
+    storeLogout();
+    console.log('State cleared, navigating');
+    router.replace('/(auth)/signin');
+  } catch (e: any) {
+    console.error(e);
+    Alert.alert('Error', e.message);
   }
-
+}
   return (
     <SafeAreaView style={styles.safe}>
       <View style={styles.header}>

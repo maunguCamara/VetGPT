@@ -20,7 +20,7 @@ interface ManualItem {
   key: string;
   label: string;
   sub: string;
-  source: string | null;
+  source: string;
   species?: string[];
 }
 
@@ -38,12 +38,12 @@ const MANUAL_SECTIONS = [
   {
     title: '⏳ Pending License',
     data: [
-      { key: 'merck_vet',          label: 'Merck Veterinary Manual',     sub: 'Core reference', source: null },
-      { key: 'plumbs',             label: "Plumb's Drug Handbook",        sub: 'Drug dosages', source: null },
-      { key: 'blackwells_5min',    label: "Blackwell's 5-Min Consult",    sub: 'Quick reference', source: null },
-      { key: 'fossum_surgery',     label: 'Fossum Small Animal Surgery',  sub: 'Surgical procedures', source: null },
-      { key: 'jubb_kennedy_palmer',label: 'Jubb, Kennedy & Palmer',       sub: 'Pathology', source: null },
-      { key: 'thralls_radiology',  label: "Thrall's Radiology",           sub: 'Diagnostic imaging', source: null },
+      { key: 'merck_vet',          label: 'Merck Veterinary Manual',     sub: 'Core reference', source: '' },
+      { key: 'plumbs',             label: "Plumb's Drug Handbook",        sub: 'Drug dosages', source: '' },
+      { key: 'blackwells_5min',    label: "Blackwell's 5-Min Consult",    sub: 'Quick reference', source: '' },
+      { key: 'fossum_surgery',     label: 'Fossum Small Animal Surgery',  sub: 'Surgical procedures', source: '' },
+      { key: 'jubb_kennedy_palmer',label: 'Jubb, Kennedy & Palmer',       sub: 'Pathology', source: '' },
+      { key: 'thralls_radiology',  label: "Thrall's Radiology",           sub: 'Diagnostic imaging', source: '' },
     ],
   },
   {
@@ -163,7 +163,7 @@ export default function ManualsScreen() {
       //Call ingest endpoint
         //alert(`Selected file: ${result.name}`);
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Upload failed:', error);
       Alert.alert('Upload Failed', error.message || 'Could not upload file. Please try again.');
     }finally {

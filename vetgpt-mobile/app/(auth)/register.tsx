@@ -10,7 +10,7 @@ import {
 } from 'react-native';
 import { useState } from 'react';
 import { router } from 'expo-router';
-import { register } from '../lib/api';
+import { register, getMe } from '../lib/api';
 import { useAuthStore } from '../../store';
 import { Colors, Spacing, Radius, Typography, Shadow } from '../../constants/theme';
 
@@ -140,8 +140,9 @@ export default function RegisterScreen() {
     setLoading(true);
     try {
       const res = await register(email.trim().toLowerCase(), password, name.trim());
+      const user = await getMe();
       setUser(res.user);
-      router.replace('/(tabs)/chat');
+      setTimeout(() => router.replace('/(tabs)/chat'), 100);
     } catch (err: any) {
       const msg = err?.message ?? 'Registration failed. Please try again.';
       Alert.alert('Registration failed', msg);

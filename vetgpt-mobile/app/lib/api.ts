@@ -120,6 +120,8 @@ export async function queryVet(query: string, opts: any = {}): Promise<any> {
 export async function streamQuery(
   query: string,
   onToken: (t: string) => void,
+  onDone?: () => void,
+  onError?:(err: Error) => void,
 ): Promise<void> {
   const token = await getStoredToken();
   const res = await fetch(`${BASE_URL}/api/query/stream`, {
@@ -164,6 +166,13 @@ export async function createCheckout(tier: string): Promise<any> {
 export async function getSubscriptionStatus(): Promise<any> {
   return req('/api/billing/subscription');
 }
+
+// app/lib/api.ts
+export async function openBillingPortal(): Promise<string> {
+  const data = await req('/api/billing/portal', { method: 'POST' });
+  return data.portal_url;
+}
+//Yet to create a backend endpoint fo this
 
 // ========== Google Sign‑In ==========
 export async function googleSignIn(idToken: string): Promise<any> {

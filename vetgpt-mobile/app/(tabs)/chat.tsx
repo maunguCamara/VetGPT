@@ -13,11 +13,12 @@ import React, { useState, useRef, useCallback, useEffect } from 'react';
 import Markdown from 'react-native-markdown-display';
 import { useChatStore, useAppStore, useAuthStore } from '../../store';
 import type { Message } from '../../store';
-import { offlineRouter } from '..//lib/offlineRouter';
+import { offlineRouter } from '../lib/offlineRouter';
 import { Colors, Spacing, Radius, Typography, Shadow } from '../../constants/theme';
-import { useSpeechRecognition, LOCALE_FLAG } from '..//lib/useSpeechRecognition';
-import type { SupportedLanguage } from '..//lib/api';
-import { LANGUAGE_LABELS } from '..//lib/api';
+import { useSpeechRecognition, LOCALE_FLAG } from '../lib/useSpeechRecognition';
+import type { SupportedLanguage } from '../lib/api';
+import { LANGUAGE_LABELS } from '../lib/api';
+import { isOnline } from '../lib/api';
 
 const SUGGESTED = [
   'Clinical signs of canine parvovirus?',

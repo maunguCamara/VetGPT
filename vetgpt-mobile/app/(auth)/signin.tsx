@@ -22,7 +22,7 @@ import { router } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
 import * as AuthSession from 'expo-auth-session';
 import * as Google from 'expo-auth-session/providers/google';
-import { loginUser, googleSignIn, register } from '../lib/api';
+import { loginUser, googleSignIn, getMe } from '../lib/api';
 import { useAuthStore } from '../../store';
 import { Colors, Spacing, Radius, Typography, Shadow } from '../../constants/theme';
 
@@ -52,12 +52,13 @@ export default function LoginScreen() {
   // Google OAuth hook
   const [request, response, promptAsync] = Google.useAuthRequest(GOOGLE_CLIENT_IDS);
 
-    //useEffect(() => {
-   // if (isAuthenticated && !hasNavigated.current) {
-    //  hasNavigated.current = true;
-   //   router.replace('/(tabs)/chat');
-   // }
-  //}, [isAuthenticated]);
+   useEffect(() => {
+    if (isAuthenticated && !hasNavigated.current) {
+      hasNavigated.current = true;
+      setTimeout(() => router.replace('/(tabs)/chat'), 50);
+    }
+  }, [isAuthenticated]);
+
   // Handle Google OAuth response
   useEffect(() => {
     if (response?.type === 'success') {
@@ -93,8 +94,9 @@ export default function LoginScreen() {
     try {
       const data = await googleSignIn(idToken);
       //API returns {access_token, user: {id, email, fullname, tier
+      const user = await getMe();
       setUser(data.user);
-      setTimeout(() => router.replace('/(tabs)/chat'), 100);
+     //setTimeout(() => router.replace('/(tabs)/chat'), 100);
     } catch (err: any) {
       Alert.alert(
         'Google Sign-In failed',
@@ -132,9 +134,16 @@ export default function LoginScreen() {
     }
     setLoading(true);
     try {
+      console.log('Calling loginUser');
       const data = await loginUser(emailTrimmed, password);
-      setUser(data.user);
-      setTimeout(() => router.replace('/(tabs)/chat'), 100);
+      console.log('loginUser response:', JSON.stringify(data));
+      console.log('Calling getMe');
+      const user = await getMe();
+      console.log('getMe response:', JSON.stringify(user));
+      console.log('Calling setUser');
+      setUser(user);
+      console.log('Navigating to chat');
+      //setTimeout(() => router.replace('/(tabs)/chat'), 0);
     } catch (err: any) {
       const msg = err.message ?? '';
       if (msg.includes('401') || msg.includes('Incorrect')) {

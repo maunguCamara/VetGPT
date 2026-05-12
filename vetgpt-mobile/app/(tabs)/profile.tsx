@@ -184,18 +184,10 @@ async function handleLogout() {
         </View>
 
         {/* Logout */}
-        {isAuthenticated ? (
+        
           <TouchableOpacity style={styles.logoutBtn} onPress={handleLogout}>
             <Text style={styles.logoutText}>Sign out</Text>
           </TouchableOpacity>
-        ) : (
-          <TouchableOpacity
-            style={styles.loginBtn}
-            onPress={() => router.replace('/(auth)/signin')}
-          >
-            <Text style={styles.loginBtnText}>Sign in →</Text>
-          </TouchableOpacity>
-        )}
 
         <Text style={styles.version}>VetGPT v1.0.0</Text>
 

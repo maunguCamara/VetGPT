@@ -181,7 +181,10 @@ async function handleLogout() {
             }}
             activeOpacity={0.8}
           >
+
             <Text style={styles.saveBtnText}>💾 Save Language Setting</Text>
+            
+
           </TouchableOpacity>     
         </View>    
 

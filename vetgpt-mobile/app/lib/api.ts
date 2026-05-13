@@ -8,7 +8,9 @@ import { Platform } from 'react-native';
 
 const CLOUD  = 'https://api.vetgpt.app';
 const LOCAL  = 'http://localhost:8000';
-export const BASE_URL = __DEV__ ? LOCAL : CLOUD;
+export const BASE_URL = __DEV__ 
+  ? process.env.EXPO_PUBLIC_API_URL || 'http://localhost:8000'  // Allow override in development
+  : CLOUD;
 
 const TOKEN_KEY = 'vetgpt_auth_token';
 

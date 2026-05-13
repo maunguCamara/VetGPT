@@ -29,7 +29,8 @@
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#0B6E4F"
+        "backgroundColor": "#0B6E4F",
+        "usesCleartextTraffic": true
       },
       "package": "com.vetgpt.app",
       "versionCode": 1,

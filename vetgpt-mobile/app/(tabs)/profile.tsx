@@ -159,14 +159,31 @@ async function handleLogout() {
                 key={lang ?? 'auto'}
                 style={[styles.speciesChip, isActive && styles.speciesChipActive]}
                 onPress={() => setPreferredLanguage(lang)}
-              >
-                <Text style={[styles.speciesChipText, isActive && styles.speciesChipTextActive]}>
+              ><Text style={[styles.speciesChipText, isActive && styles.speciesChipTextActive]}>
                   {label}
                 </Text>
               </TouchableOpacity>
+   
             );
           })}
         </View>
+        <View>
+          <TouchableOpacity
+            style={styles.saveBtn}
+            onPress={async () => {
+              try {
+                const AsyncStorage = (await import('@react-native-async-storage/async-storage')).default;
+                await AsyncStorage.setItem('vetgpt_language', preferredLanguage ?? 'auto');
+                Alert.alert('Saved', 'Language preference saved.');
+              } catch (e) {
+                Alert.alert('Error', 'Could not save language.');
+              }
+            }}
+            activeOpacity={0.8}
+          >
+            <Text style={styles.saveBtnText}>💾 Save Language Setting</Text>
+          </TouchableOpacity>     
+        </View>    
 
         {/* Phase 2: Download offline model */}
         <Text style={styles.sectionLabel}>Offline Model (Phase 2)</Text>
@@ -339,6 +356,15 @@ const styles = StyleSheet.create({
     borderRadius: Radius.md, padding: Spacing.md, alignItems: 'center',
   },
   loginBtnText: { ...Typography.h4, color: '#fff' },
+
+  saveBtn: {
+  backgroundColor: Colors.primary,
+  borderRadius: Radius.md,
+  paddingVertical: 12,
+  alignItems: 'center',
+  marginTop: Spacing.md,
+},
+saveBtnText: { ...Typography.label, color: '#fff' },
 
   version: {
     ...Typography.caption,

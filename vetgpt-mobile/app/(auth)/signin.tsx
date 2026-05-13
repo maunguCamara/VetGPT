@@ -22,7 +22,7 @@ import { router } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
 import * as AuthSession from 'expo-auth-session';
 import * as Google from 'expo-auth-session/providers/google';
-import { loginUser, googleSignIn, getMe } from '../lib/api';
+import { loginUser, googleSignIn} from '../lib/api';
 import { useAuthStore } from '../../store';
 import { Colors, Spacing, Radius, Typography, Shadow } from '../../constants/theme';
 
@@ -94,7 +94,7 @@ export default function LoginScreen() {
     try {
       const data = await googleSignIn(idToken);
       //API returns {access_token, user: {id, email, fullname, tier
-      const user = await getMe();
+     
       setUser(data.user);
      //setTimeout(() => router.replace('/(tabs)/chat'), 100);
     } catch (err: any) {
@@ -137,13 +137,7 @@ export default function LoginScreen() {
       console.log('Calling loginUser');
       const data = await loginUser(emailTrimmed, password);
       console.log('loginUser response:', JSON.stringify(data));
-      console.log('Calling getMe');
-      const user = await getMe();
-      console.log('getMe response:', JSON.stringify(user));
-      console.log('Calling setUser');
-      setUser(user);
-      console.log('Navigating to chat');
-      //setTimeout(() => router.replace('/(tabs)/chat'), 0);
+      setUser(data.user);//setTimeout(() => router.replace('/(tabs)/chat'), 0);
     } catch (err: any) {
       const msg = err.message ?? '';
       if (msg.includes('401') || msg.includes('Incorrect')) {

@@ -128,26 +128,58 @@ export async function streamQuery(
   onError?:(err: Error) => void,
 ): Promise<void> {
   const token = await getStoredToken();
-  const res = await fetch(`${BASE_URL}/api/query/stream`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    },
-    body: JSON.stringify({ query }),
-  });
-  if (!res.ok || !res.body) {
+  try{
+    const res = await fetch(`${BASE_URL}/api/query/stream`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+      body: JSON.stringify({ query }),
+    });
+    
+    if (!res.ok) {
     // Fall back to non-streaming
-    const data = await queryVet(query);
-    onToken(data.answer ?? '');
-    return;
+      const data = await queryVet(query);
+      onToken(data.answer ?? '');
+      return;
+    }
+    const reader = res.body?.getReader();
+    if(!reader){
+      onError?.(new Error('No response body'));
+      return;
+    }
+
+    const decoder = new TextDecoder();
+    let buffer = '';
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+    buffer += decoder.decode(value, { stream: true });
+    
+    const lines = buffer.split('\n');
+    buffer = lines.pop() ?? '';
+    for (const line of lines) {
+      if(line.startsWith('data: ')) {
+        const data = line.slice(6).trim();
+        if (data === '[DONE]') {
+          onDone?.();
+          return;
+        }
+        try {
+          const parsed = JSON.parse(data);
+          if (parsed.token) {
+            onToken(parsed.token);
+          }
+        } catch {
+
+        }
+      }
+    }
   }
-  const reader = res.body.getReader();
-  const decoder = new TextDecoder();
-  while (true) {
-    const { done, value } = await reader.read();
-    if (done) break;
-    onToken(decoder.decode(value, { stream: true }));
+  onDone?.();
+  } catch (err: any) {
+    onError?.(err instanceof Error ? err : new Error('Stream query failed'));
   }
 }
 export interface QueryResponse {

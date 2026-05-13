@@ -38,7 +38,7 @@ class Settings(BaseSettings):
 
     # ── RAG ───────────────────────────────────────────────────────────────────
     rag_top_k:             int   = 5
-    rag_min_score:         float = 0.3
+    rag_min_score:         float = 0.5
     chroma_db_path:        str   = "./data/chroma_db"
     chroma_collection_name:str   = "vet_manuals"
     embedding_provider:    str   = "local"             # local | openai

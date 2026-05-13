@@ -287,7 +287,7 @@ class VetRAGEngine:
                 score=c["score"],
                 excerpt=c["text"][:200],
             )
-            for c in chunks
+            for c in chunks if c["score"] >= settings.rag_min_score
         ]
 
         latency = int((time.time() - start) * 1000)

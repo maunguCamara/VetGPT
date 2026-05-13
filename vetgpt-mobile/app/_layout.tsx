@@ -33,12 +33,13 @@ async function isInternetAvailable(): Promise<boolean> {
     const controller = new AbortController();
     const timeout    = setTimeout(() => controller.abort(), 4000);
     const res = await fetch(
-      'https://dns.google/resolve?name=google.com&type=A',
+      'https://api.vetgpt.app/api/health',
       { signal: controller.signal, method: 'HEAD' },
     );
     clearTimeout(timeout);
     return res.status < 500;
   } catch {
+    if (Platform.OS === 'web') return navigator.onLine;
     return false;
   }
 }
@@ -136,7 +137,7 @@ export default function RootLayout() {
         </View>
     );
   }
-          return (
+    return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <StatusBar style="light" backgroundColor={Colors.primary} />
       <Stack screenOptions={{ headerShown: false }}>

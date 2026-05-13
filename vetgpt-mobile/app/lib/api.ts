@@ -4,6 +4,7 @@
  */
 
 import { getItem, setItem, deleteItem } from './storage';
+import { Platform } from 'react-native';
 
 const CLOUD  = 'https://api.vetgpt.app';
 const LOCAL  = 'http://localhost:8000';
@@ -85,13 +86,16 @@ export async function isOnline(): Promise<boolean> {
   try {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 5000);
-    const res = await fetch('https://dns.google/resolve?name=google.com&type=A', {
+    const res = await fetch(`${BASE_URL}/api/health`, {
       method: 'HEAD',
       signal: controller.signal,
     });
     clearTimeout(timeout);
     return res.status < 500;
   } catch {
+    if (Platform.OS === 'web') {
+      return typeof navigator !== 'undefined' ? navigator.onLine : false;
+    }
     return false;
   }
 }

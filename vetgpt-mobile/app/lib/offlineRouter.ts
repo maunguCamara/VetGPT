@@ -94,8 +94,13 @@ export class OfflineRouter {
     if (online) {
       return {
         mode: 'cloud',
-        reason: 'Online — using cloud AI for best accuracy',
+        reason: 'Online — using cloud AI',
       };
+    }
+
+    if (Platform.OS === 'web') {
+      return {mode: 'unavailable', reason: 'Web browser cannot run local models.Use app for offline models'};
+      
     }
 
     if (!this._localReady) {

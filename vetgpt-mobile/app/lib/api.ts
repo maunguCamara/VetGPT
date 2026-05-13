@@ -128,6 +128,7 @@ export async function streamQuery(
   onToken: (t: string) => void,
   onDone?: () => void,
   onError?:(err: Error) => void,
+  options?: { signal?: AbortSignal}
 ): Promise<void> {
   const token = await getStoredToken();
   try{
@@ -138,6 +139,7 @@ export async function streamQuery(
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
       },
       body: JSON.stringify({ query }),
+      signal: options?.signal,
     });
     
     if (!res.ok) {

@@ -20,6 +20,8 @@ import type { SupportedLanguage } from '../lib/api';
 import { LANGUAGE_LABELS } from '../lib/api';
 import { isOnline } from '../lib/api';
 
+
+const abortControllerRef = useRef<AbortController | null>(null);
 const SUGGESTED = [
   'Clinical signs of canine parvovirus?',
   'Feline hyperthyroidism drug dosages',
@@ -27,6 +29,12 @@ const SUGGESTED = [
   'Signs of equine colic',
   'Deworming protocol for sheep',
 ];
+
+function handleStop() {
+  const { setQuerying } = useChatStore();
+  abortControllerRef.current?.abort();
+  setQuerying(false);
+}
 
 function OfflineBanner({ hasLocalModel }: { hasLocalModel: boolean }) {
   return (
@@ -191,11 +199,16 @@ export default function ChatScreen() {
       return;
     }
 
+    abortControllerRef.current?.abort();
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
+
     await offlineRouter.streamQuery(
       query,
       (token) => { updateLastMessage(token); scrollToBottom(); },
       () => { setQuerying(false); scrollToBottom(); },
       (err) => {
+        if (err.name === 'AbortError') return;
         updateLastMessage(
           err.message.includes('offline') || err.message.includes('internet')
             ? err.message
@@ -203,7 +216,7 @@ export default function ChatScreen() {
           true,
         );
         setQuerying(false);
-      },
+      },     
       (decision) => console.log('[Chat] mode:', decision.mode),
     );
   }

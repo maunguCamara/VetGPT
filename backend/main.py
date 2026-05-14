@@ -161,6 +161,7 @@ app.include_router(billing_router)     # /api/billing/*
 # PDF upload
 app.include_router(upload_router)      # /api/manuals/*
 app.include_router(whatsapp_router)    # /bots/whatsapp/*
+app.include_router(farm_router)        # /api/farm/*
 
 # Mobile offline sync
 app.include_router(sync_router)        # /api/sync/*

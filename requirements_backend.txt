@@ -39,3 +39,7 @@ numpy==1.26.4                     # Pixel array manipulation
 # Bots
 python-telegram-bot==21.3          # Telegram bot
 twilio==9.2.3                      # WhatsApp via Twilio
+
+# Farm management — audio transcription
+faster-whisper==1.0.3              # local Whisper (free, multilingual, runs on CPU)
+ 

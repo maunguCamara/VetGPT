@@ -54,3 +54,7 @@ logs/
 # ── Alembic ───────────────────────────────────────────────────────────────────
 # Keep migrations but not the generated DB
 alembic/versions/*.pyc
+
+# ---pnpm
+.pnpm-store/
+pnpm-lock.yaml.bak

@@ -30,11 +30,6 @@ const SUGGESTED = [
   'Deworming protocol for sheep',
 ];
 
-function handleStop() {
-  const { setQuerying } = useChatStore();
-  abortControllerRef.current?.abort();
-  setQuerying(false);
-}
 
 function OfflineBanner({ hasLocalModel }: { hasLocalModel: boolean }) {
   return (
@@ -69,9 +64,7 @@ function MessageBubble({ message }: { message: Message }) {
                 {message.content || (message.isStreaming ? '▌' : '')}
               </Markdown>
             )}
-            {message.isStreaming && (
-              <ActivityIndicator size="small" color={Colors.primary} style={{ marginTop: 4 }} />
-            )}
+
             {!message.isStreaming && message.citations && message.citations.length > 0 && (
               <View style={styles.citations}>
                 <Text style={styles.citationsLabel}>Sources</Text>
@@ -161,6 +154,12 @@ export default function ChatScreen() {
       startListening(lang);
     }
   }
+  
+  function handleStop() {
+  abortControllerRef.current?.abort();
+  setQuerying(false);
+}
+
 
   async function sendMessage(text?: string) {
     const query = (text ?? input).trim();
@@ -218,6 +217,7 @@ export default function ChatScreen() {
         setQuerying(false);
       },     
       (decision) => console.log('[Chat] mode:', decision.mode),
+      controller.signal,
     );
   }
 
@@ -315,6 +315,13 @@ export default function ChatScreen() {
               {speechState === 'listening' ? '⏹' : '🎙️'}
             </Text>
           </TouchableOpacity>
+          {/* ------- STOP BUTTON ------- */}
+          {isQuerying && (
+            <TouchableOpacity style={styles.stopBtn} onPress={handleStop}>
+              <Text style={styles.stopIcon}>⏹</Text>
+            </TouchableOpacity>
+          )}
+          {/* --------------------------- */}
           <TouchableOpacity
             style={[styles.sendBtn, (!input.trim() || isQuerying) && styles.sendBtnDisabled]}
             onPress={() => sendMessage()}
@@ -422,6 +429,13 @@ const styles = StyleSheet.create({
     borderColor: Colors.primary,
   },
   micIcon: { fontSize: 18 },
+  stopBtn: {
+  width: 40, height: 40, borderRadius: 20,
+  backgroundColor: Colors.error,
+  alignItems: 'center', justifyContent: 'center',
+  marginLeft: Spacing.sm,
+},
+stopIcon: { color: '#fff', fontSize: 18 },
   langPicker: {
     flexDirection: 'row', flexWrap: 'wrap', gap: 6,
     paddingHorizontal: Spacing.sm, paddingVertical: 6,

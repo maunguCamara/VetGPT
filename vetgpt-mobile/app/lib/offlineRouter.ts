@@ -125,13 +125,13 @@ export class OfflineRouter {
     onDone: () => void,
     onError: (err: Error) => void,
     onModeDecided?: (decision: RouterDecision) => void,
-  ): Promise<void> {
+    signal?: AbortSignal,   ): Promise<void> {
     const decision = await this.decide();
     onModeDecided?.(decision);
 
     switch (decision.mode) {
       case 'cloud':
-        return cloudStream(query, onToken, onDone, onError);
+        return cloudStream(query, onToken, onDone, onError, { signal });
 
       case 'local_mlc':
         return mlcClient.streamQuery(query, onToken, onDone, onError);

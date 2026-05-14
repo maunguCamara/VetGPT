@@ -1,0 +1,4 @@
+# vetgpt-mobile/pnpm-workspace.yaml
+# Single-package workspace — keeps pnpm store shared for future packages
+packages:
+  - '.'

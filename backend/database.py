@@ -149,3 +149,6 @@ async def get_db() -> AsyncSession:
             raise
         finally:
             await session.close()
+
+#import farm models so Alembic sees them
+from . import farm_models #noqa: F401

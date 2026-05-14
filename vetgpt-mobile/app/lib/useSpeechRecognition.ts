@@ -164,7 +164,7 @@ export function useSpeechRecognition(): UseSpeechRecognitionReturn {
       if (msg.includes('not found') || msg.includes('Cannot find module')) {
         setError(
           'Speech recognition requires a native build.\n' +
-          'Run: npx expo prebuild && npx expo run:android',
+          'Run: pnpm prebuild && pnpm android',
         );
         setIsAvailable(false);
       } else {

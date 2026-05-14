@@ -186,8 +186,8 @@ export class LlamaCppClient {
 
 // ─── MLC LLM client ───────────────────────────────────────────────────────────
 // MLC runs via native bridge, no HTTP server needed
-// Install: npx expo install react-native-mlc-llm
-// Requires: npx expo prebuild
+// Install: pnpm dlx expo install react-native-mlc-llm
+// Requires:pnpm prebuild
 
 export class MLCClient {
   private _engine: any = null;

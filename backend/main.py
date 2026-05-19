@@ -32,6 +32,9 @@ from bots.whatsapp_bot import whatsapp_router
 from .billing       import billing_router
 from .finetune      import finetune_router
 from .sync_routes   import sync_router
+from .schedule_routes import sched_router
+from .farm_routes   import farm_router
+from .notification_worker import start_scheduler, stop_scheduler
 
 settings = get_settings()
 
@@ -72,11 +75,16 @@ async def lifespan(app: FastAPI):
     set_rag_engine(engine)
     h = engine.health()
     print(f"✓ RAG engine — {h['chroma_chunks']:,} chunks | LLM: {h['llm_provider']}")
+    #Start notification worker (APScheduler)
+    start_scheduler()
+    print("Notification worker started")
     # Pre-warm Ollama so first user query is fast
     await engine.warmup()
     print("✓ All systems ready")
     yield
     print("VetGPT API shutting down...")
+    stop_scheduler()
+
 
 
 # ── App ───────────────────────────────────────────────────────────────────────
@@ -160,9 +168,12 @@ app.include_router(billing_router)     # /api/billing/*
 
 # PDF upload
 app.include_router(upload_router)      # /api/manuals/*
+
 app.include_router(whatsapp_router)    # /bots/whatsapp/*
+
 app.include_router(farm_router)        # /api/farm/*
 
+app.include_router(sched_router) #/api/schedules
 # Mobile offline sync
 app.include_router(sync_router)        # /api/sync/*
 

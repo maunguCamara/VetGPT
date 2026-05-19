@@ -19,6 +19,7 @@ from sqlalchemy.ext.asyncio import (
 from sqlalchemy.orm import DeclarativeBase, relationship
 import enum
 from .config import get_settings
+from . import schedule_models 
 
 settings = get_settings()
 

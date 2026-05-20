@@ -19,7 +19,6 @@ from sqlalchemy.ext.asyncio import (
 from sqlalchemy.orm import DeclarativeBase, relationship
 import enum
 from .config import get_settings
-from . import schedule_models #noqa: F401
 
 settings = get_settings()
 
@@ -119,16 +118,7 @@ class Subscription(Base):
     created_at          = Column(DateTime, default=datetime.utcnow)
     updated_at          = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
-class AnalyticsEvent(Base):
-    __tablename__ = "analytics_events"
-    
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    user_id = Column(String(36), ForeignKey("users.id"), nullable=True)
-    event_type = Column(String(100), nullable=False)
-    properties = Column(Text, default="{}")  # JSON stored as string
-    created_at = Column(DateTime, default=datetime.utcnow)
-    
-    user = relationship("User", foreign_keys=[user_id])
+
 # ──────────────────────────────────────────────
 # DB helpers
 # ──────────────────────────────────────────────
@@ -150,6 +140,3 @@ async def get_db() -> AsyncSession:
             raise
         finally:
             await session.close()
-
-#import farm models so Alembic sees them
-from . import farm_models #noqa: F401

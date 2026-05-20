@@ -43,3 +43,6 @@ twilio==9.2.3                      # WhatsApp via Twilio
 # Farm management — audio transcription
 faster-whisper==1.0.3              # local Whisper (free, multilingual, runs on CPU)
  
+ # Scheduling & notifications
+apscheduler==3.10.4                # background job scheduler
+ 
